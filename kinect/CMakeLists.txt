@@ -105,18 +105,17 @@ include_directories(
 # )
 
 ## Declare a cpp executable
-# add_executable(kinect_node src/kinect_node.cpp)
+add_executable(kinect_driver src/kinect_driver.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(kinect_node kinect_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(kinect_node
-#   ${catkin_LIBRARIES}
-# )
-
-#target_link_libraries(<YOUR_TARGET> ${PCL_LIBRARIES})
+target_link_libraries(kinect_driver
+   ${catkin_LIBRARIES}
+	${PCL_LIBRARIES}
+ )
 
 #############
 ## Install ##
