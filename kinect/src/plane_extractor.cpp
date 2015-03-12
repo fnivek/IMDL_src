@@ -9,6 +9,8 @@
 #include <pcl/ModelCoefficients.h>
 #include <stdio.h>
 
+ros::Publisher evil_global_pub;
+
 void segmentCloud(const sensor_msgs::PointCloud2::ConstPtr& pc)
 {
 	// Convert from ros msg
@@ -34,7 +36,14 @@ void segmentCloud(const sensor_msgs::PointCloud2::ConstPtr& pc)
 
 	// Tell ROS whats up
 	ROS_INFO("x: %f,\ty: %f,\tz: %f,\tw: %f", coeffs->values[0], coeffs->values[1], coeffs->values[2], coeffs->values[3]);
-	std::cout << (*coeffs);
+
+	// Output msg
+	sensor_msgs::PointCloud2::Ptr out_msg(new sensor_msgs::PointCloud2);
+	pcl::PointCloud<pcl::PointXYZ>::Ptr ground(new pcl::PointCloud<pcl::PointXYZ>);
+	pcl::copyPointCloud(*raw_pc, *inliers, *ground);
+	pcl::toROSMsg(*ground, *out_msg);
+	evil_global_pub.publish(out_msg);
+
 }
 
 /************************
@@ -43,7 +52,7 @@ void segmentCloud(const sensor_msgs::PointCloud2::ConstPtr& pc)
 int main(int argc, char** argv)
 {
 	//Initialize ROS
-	ros::init(argc, argv, "kinect_driver");
+	ros::init(argc, argv, "plane_extractor");
 	ros::NodeHandle nh;
 	ros::Rate update_rate(100);
 
@@ -51,6 +60,8 @@ int main(int argc, char** argv)
 			nh.subscribe<sensor_msgs::PointCloud2>("/camera/depth/points",
 			100,
 			&segmentCloud);
+
+	evil_global_pub = nh.advertise<sensor_msgs::PointCloud2>("ground", 10);
 
 	while(ros::ok())
 	{
