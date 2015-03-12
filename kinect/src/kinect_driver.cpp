@@ -40,7 +40,12 @@ public:
 		last_time_ = ros::Time::now();
 
 		// Test openni
-		interface = new pcl::OpenNIGrabber();
+		try
+		{
+			interface = new pcl::OpenNIGrabber();
+		}
+		catch(const openni_wrapper::OpenNIException& exception){};
+
 
 		boost::function<void (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr&)> callback =
 				 boost::bind (&temp::cloud_cb_, this, _1);
