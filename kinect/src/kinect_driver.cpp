@@ -1,8 +1,60 @@
 #include <ros/ros.h>
 #include <ros/rate.h>
+#include <sensor_msgs/PointCloud2.h>
 
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
+#include <pcl/io/openni_grabber.h>
+
+class temp
+{
+public:
+	pcl::Grabber* interface;
+
+	ros::Publisher pc_pub_;
+
+	ros::Duration delta_;
+	ros::Time last_time_;
+
+	void cloud_cb_ (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cloud)
+	{
+		// Convert to ros msg
+		sensor_msgs::PointCloud2::Ptr out_pc(new sensor_msgs::PointCloud2);
+		pcl::toROSMsg(*cloud, *out_pc);
+
+		// Fill out header
+		out_pc->header.frame_id = "base_link";
+
+		// Publish raw point cloud
+		pc_pub_.publish(out_pc);
+
+		delta_ = ros::Time::now() - last_time_;
+		last_time_ = ros::Time::now();
+
+		ROS_INFO("Delta: %f", delta_.toSec());
+	}
+
+	void init_(ros::NodeHandle& nh)
+	{
+		pc_pub_ = nh.advertise<sensor_msgs::PointCloud2>("raw_pc", 10);
+		last_time_ = ros::Time::now();
+
+		// Test openni
+		interface = new pcl::OpenNIGrabber();
+
+		boost::function<void (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr&)> callback =
+				 boost::bind (&temp::cloud_cb_, this, _1);
+
+		interface->registerCallback (callback);
+
+		interface->start ();
+	}
+
+	void stop_()
+	{
+		interface->stop();
+	}
+};
 
 
 /************************
@@ -15,10 +67,16 @@ int main(int argc, char** argv)
 	ros::NodeHandle nh;
 	ros::Rate update_rate(100);
 
+	temp test;
+	test.init_(nh);
+
 	while(ros::ok())
 	{
 		update_rate.sleep();
 		ros::spinOnce();
 	}
+
+	test.stop_();
+
 	return 0;
 }
