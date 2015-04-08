@@ -3,10 +3,25 @@ import rospy
 import serial
 import time
 from struct import *
+from std_msgs.msg import Float32
+from std_msgs.msg import Int32MultiArray
 
 sonar_id = 'sonar_data'
+iface = serial.Serial()
+
+
+def left_pwm_cb(pwm):
+	global iface
+	paked_data = pack('<f', pwm.data)
+	iface.write('left_duty%s' % paked_data)
+
+def right_pwm_cb(pwm):
+	global iface
+	paked_data = pack('<f', pwm.data)
+	iface.write('right_duty%s' % paked_data)
 
 def main():
+	global iface
 	#Init ros
 	rospy.init_node('hardware_interface', anonymous=False)
 
@@ -24,6 +39,12 @@ def main():
 
 	# Send anything to hardware interface to wake it up
 	iface.write('WakeUp')
+
+	# Initilize publishers and subscribers
+	rospy.Subscriber("left_duty", Float32, left_pwm_cb)
+	rospy.Subscriber("right_duty", Float32, right_pwm_cb)
+
+	sonar_pub = rospy.Publisher("sonar_data", Int32MultiArray, queue_size = 10)
 
 	# Main loop
 	while not rospy.is_shutdown():
@@ -43,7 +64,11 @@ def main():
 				data = input[sonar_index + 10 : len(input)]
 				# Unpack 4 little-endian uint32's
 				ticks = unpack('<LLLL', data)
-				print ticks
+
+				# publish the data
+				msg = Int32MultiArray()
+				msg.data = [ticks[0], ticks[1], ticks[2], ticks[3]]
+				sonar_pub.publish(msg)
 
 
 
