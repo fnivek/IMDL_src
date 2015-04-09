@@ -16,7 +16,7 @@ public:
 	ros::Duration delta_;
 	ros::Time last_time_;
 
-	void cloud_cb_ (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cloud)
+	void cloud_cb_ (const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud)
 	{
 		// Convert to ros msg
 		sensor_msgs::PointCloud2::Ptr out_pc(new sensor_msgs::PointCloud2);
@@ -46,8 +46,7 @@ public:
 		}
 		catch(const openni_wrapper::OpenNIException& exception){};
 
-
-		boost::function<void (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr&)> callback =
+		boost::function<void (const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr&)> callback =
 				 boost::bind (&temp::cloud_cb_, this, _1);
 
 		interface->registerCallback (callback);

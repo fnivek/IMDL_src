@@ -117,6 +117,12 @@ target_link_libraries(plane_extractor
    ${catkin_LIBRARIES}
 	${PCL_LIBRARIES}
  )
+
+add_executable(colored_obj_extractor src/colored_obj_extractor.cpp)
+target_link_libraries(colored_obj_extractor
+   ${catkin_LIBRARIES}
+	${PCL_LIBRARIES}
+ )
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(kinect_node kinect_generate_messages_cpp)
