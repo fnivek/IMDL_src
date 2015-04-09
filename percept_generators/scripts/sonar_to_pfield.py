@@ -7,7 +7,7 @@ import math
 
 from collections import deque
 
-sizeOfDeques = 10
+sizeOfDeques = 3
 sonar_data = [deque() for x in range(4)]
 pfield_pub = rospy.Publisher("sonar_pfield", Vector3, queue_size = 10)
 
@@ -49,7 +49,7 @@ def sonar_data_cb(msg):
 		# 					0*,    180*, 30*,		  -30*
 		# An inverse tangent function is used to calculate a potential field
 		# K * cot((pi/2920000)*(x - 40000))
-	scalar_pfields = map( lambda avg: 1 / math.tan(1.07588789506499e-6 * avg + 0.0430355158025),
+	scalar_pfields = map( lambda avg: 0.7 / math.tan(1.07588789506499e-6 * avg + 0.0430355158025),
 							sonar_avg)
 	pfield = Vector3()
 	pfield.x = scalar_pfields[0] * -1 + scalar_pfields[1] + scalar_pfields[2] * -math.cos(math.pi/6) + scalar_pfields[3] * -math.cos(-math.pi/6)

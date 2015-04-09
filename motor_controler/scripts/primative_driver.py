@@ -31,39 +31,39 @@ def motorCmdCb(twist):
 	right_duty = vel / 2 - ang_vel / 0.1524
 
 	# Scale the duty cycle
-	diff = abs(left - right)
-	if abs(left - right) > 2:
+	diff = abs(left_duty - right_duty)
+	if abs(left_duty - right_duty) > 2:
 		rospy.logwarn('Can not produced desired twist')
-		if left < right:
-			left = -1 
-			right = 1
+		if left_duty < right_duty:
+			left_duty = -1 
+			right_duty = 1
 		else:
-			left = 1 
-			right = -1
+			left_duty = 1 
+			right_duty = -1
 
-	if(left > 1):
+	if(left_duty > 1):
 		rospy.logwarn('Left duty cycle above max')
-		shift = left - 1 
-		left = 1 
-		right -= shift
+		shift = left_duty - 1 
+		left_duty = 1 
+		right_duty -= shift
 
-	elif left < -1:
+	elif left_duty < -1:
 		rospy.logwarn('Left duty cycle below min')
-		shift = left + 1
-		left = -1
-		right -= shift
+		shift = left_duty + 1
+		left_duty = -1
+		right_duty -= shift
 
-	if(right > 1):
+	if(right_duty > 1):
 		rospy.logwarn('Right duty cycle above max')
-		shift = right - 1 
-		right = 1 
-		left -= shift
+		shift = right_duty - 1 
+		right_duty = 1 
+		left_duty -= shift
 
-	elif right < -1:
+	elif right_duty < -1:
 		rospy.logwarn('Right duty cycle below min')
-		shift = right + 1
-		right = -1
-		left -= shift
+		shift = right_duty + 1
+		right_duty = -1
+		left_duty -= shift
 
 	left_duty_pub.publish(Float32(left_duty))
 	right_duty_pub.publish(Float32(right_duty))
