@@ -11,6 +11,7 @@
 #include <stdio.h>
 
 ros::Publisher evil_global_pub;
+ros::Publisher evil_global_pub2;
 
 void segmentCloud(const sensor_msgs::PointCloud2::ConstPtr& pc)
 {
@@ -30,6 +31,13 @@ void segmentCloud(const sensor_msgs::PointCloud2::ConstPtr& pc)
 	pass.setFilterLimits (0.1, 5);
 	pass.filter (*indices);
 
+
+	sensor_msgs::PointCloud2::Ptr out_msg(new sensor_msgs::PointCloud2);
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr out_pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+	pcl::copyPointCloud(*raw_pc, *indices, *out_pc);
+	pcl::toROSMsg(*out_pc, *out_msg);
+	evil_global_pub2.publish(out_msg);
+
 	// Color region grow
 	pcl::RegionGrowingRGB<pcl::PointXYZRGB> reg;
 	reg.setInputCloud (raw_pc);
@@ -46,8 +54,6 @@ void segmentCloud(const sensor_msgs::PointCloud2::ConstPtr& pc)
 
 
 	// Output msgs
-	sensor_msgs::PointCloud2::Ptr out_msg(new sensor_msgs::PointCloud2);
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr out_pc(new pcl::PointCloud<pcl::PointXYZRGB>);
 
 	for(std::vector<pcl::PointIndices>::iterator it = clusters.begin(); it < clusters.end(); ++it)
 	{
@@ -69,11 +75,12 @@ int main(int argc, char** argv)
 	ros::Rate update_rate(100);
 
 	ros::Subscriber pc_listener =
-			nh.subscribe<sensor_msgs::PointCloud2>("raw_pc",
+			nh.subscribe<sensor_msgs::PointCloud2>("/camera/depth/points",
 			100,
 			&segmentCloud);
 
 	evil_global_pub = nh.advertise<sensor_msgs::PointCloud2>("colored_objs", 10);
+	evil_global_pub2 = nh.advertise<sensor_msgs::PointCloud2>("colored_objs2", 10);
 
 	while(ros::ok())
 	{
