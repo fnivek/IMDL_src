@@ -22,19 +22,39 @@ void segmentCloud(const sensor_msgs::PointCloud2::ConstPtr& pc)
 	pcl::search::Search <pcl::PointXYZRGB>::Ptr tree =
 			boost::shared_ptr<pcl::search::Search<pcl::PointXYZRGB> > (new pcl::search::KdTree<pcl::PointXYZRGB>);
 
+	// Shrink in the y axis
+	pcl::IndicesPtr indices (new std::vector <int>);
 	pcl::PassThrough<pcl::PointXYZRGB> pass;
 	pass.setInputCloud (raw_pc);
 	pass.setFilterFieldName ("y");
 	pass.setFilterLimits (0.1, 5);
-	//pass.setFilterLimitsNegative (true);
+	pass.filter (*indices);
 
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr greenish_pc(new pcl::PointCloud<pcl::PointXYZRGB>);
-	pass.filter (*greenish_pc);
+	// Color region grow
+	pcl::RegionGrowingRGB<pcl::PointXYZRGB> reg;
+	reg.setInputCloud (raw_pc);
+	reg.setIndices (indices);
+	reg.setSearchMethod (tree);
+	reg.setDistanceThreshold (10);
+	reg.setPointColorThreshold (6);
+	reg.setRegionColorThreshold (5);
+	reg.setMinClusterSize (200);
 
-	// Output msg
+	// Get the cloud
+	std::vector <pcl::PointIndices> clusters;
+	reg.extract(clusters);
+
+
+	// Output msgs
 	sensor_msgs::PointCloud2::Ptr out_msg(new sensor_msgs::PointCloud2);
-	pcl::toROSMsg(*greenish_pc, *out_msg);
-	evil_global_pub.publish(out_msg);
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr out_pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+
+	for(std::vector<pcl::PointIndices>::iterator it = clusters.begin(); it < clusters.end(); ++it)
+	{
+		pcl::copyPointCloud(*raw_pc, *it, *out_pc);
+		pcl::toROSMsg(*out_pc, *out_msg);
+		evil_global_pub.publish(out_msg);
+	}
 
 }
 
