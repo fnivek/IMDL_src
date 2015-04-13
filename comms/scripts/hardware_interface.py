@@ -6,6 +6,7 @@ from struct import *
 from std_msgs.msg import Float32
 from std_msgs.msg import Int32MultiArray
 
+
 sonar_id = 'sonar_data'
 iface = serial.Serial()
 
@@ -19,6 +20,9 @@ def right_pwm_cb(pwm):
 	global iface
 	paked_data = pack('<f', pwm.data)
 	iface.write('right_duty%s' % paked_data)
+
+def heartbeat_cb(event):
+	iface.write("beat")
 
 def main():
 	global iface
@@ -38,13 +42,16 @@ def main():
 			time.sleep(1)
 
 	# Send anything to hardware interface to wake it up
-	iface.write('WakeUp')
+	iface.write('beat')
 
 	# Initilize publishers and subscribers
 	rospy.Subscriber("left_duty", Float32, left_pwm_cb)
 	rospy.Subscriber("right_duty", Float32, right_pwm_cb)
 
 	sonar_pub = rospy.Publisher("sonar_data", Int32MultiArray, queue_size = 10)
+
+	# Heartbeat timer
+	rospy.Timer(rospy.Duration(1), heartbeat_cb, oneshot=False)
 
 	# Main loop
 	while not rospy.is_shutdown():
@@ -73,12 +80,15 @@ def main():
 
 
 
-	iface.close();
-
-
-
-
 	rospy.spin()
 
 if __name__ == '__main__':
-	main()
+	try:
+		main()
+	except Exception, e:
+		print e
+	finally:		
+		paked_data = pack('<f', 0)
+		iface.write('right_duty%s' % paked_data)
+		iface.write('left_duty%s' % paked_data)
+		iface.close();

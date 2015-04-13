@@ -75,7 +75,7 @@ int main(int argc, char** argv)
 	ros::Rate update_rate(100);
 
 	ros::Subscriber pc_listener =
-			nh.subscribe<sensor_msgs::PointCloud2>("/camera/depth/points",
+			nh.subscribe<sensor_msgs::PointCloud2>("/raw_pc",
 			100,
 			&segmentCloud);
 

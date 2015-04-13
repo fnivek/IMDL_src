@@ -78,5 +78,12 @@ def main():
 
 	rospy.spin()
 
+
+
 if __name__ == '__main__':
-	main()
+	try:
+		main()
+	except e:
+		print e
+	finally:		
+		print 'Warning: motors left in final state before node was shutdown'
