@@ -14,73 +14,96 @@ class node:
 
 		self.desired_right_velocity = 0
 		self.desired_left_velocity = 0
-		
+		self.last_err_l = 0
+		self.last_err_r = 0
+		self.i_err_l = 0
+		self.i_err_r = 0
+
+		self.kp = rospy.get_param('gain_p', 0.1)
+		self.kd = rospy.get_param('gain_d', 0.1)
+		self.ki = rospy.get_param('gain_i', 0.01)	# Integral scares me...
+
+		self.wheel_base = rospy.get_param('/wheel_base', 0.3048) # 0.3048 m = 12 in
+
+		self.last_time = rospy.get_time()
+
 	#Callback for motor command
 	#		
 	# Equation:
-	#	TODO:
-	#
+	#	Vx = (Vr + Vl) / 2
+	#	w = (Vr - Vl) / L
+	# ------------------------
+	#	Vr = Vx + L * w / 2
+	#	Vl = Vx - L * w / 2
 	#
 	def motorCmdCb(self, twist):
-		# Temporarily treat this like force...
-		#	| Fx |   | 1     1 | | Fm1 |
-		#	| T  | = | L/2  -L/2| | Fm2 |
-		#
-		#	Fm1 = F/2 + T / L
-		#	Fm2 = F/2 - T /L
-		#
-		#	L = 6in
-		#							Fudge constants
-		vel = twist.linear.x		/ 10
-		ang_vel = twist.angular.z	/ 10
+		Vx = twist.linear.x
+		w = twist.angular.z
 
-		# Set just force component
-		left_duty = vel / 2 + ang_vel / 0.1524
-		right_duty = vel / 2 - ang_vel / 0.1524
+		self.desired_left_velocity = Vx - self.wheel_base * w / 2
+		self.desired_right_velocity = Vx + self.wheel_base * w / 2
 
-		# Scale the duty cycle
-		diff = abs(left_duty - right_duty)
-		if abs(left_duty - right_duty) > 2:
-			rospy.logwarn('Can not produced desired twist')
-			if left_duty < right_duty:
-				left_duty = -1 
-				right_duty = 1
-			else:
-				left_duty = 1 
-				right_duty = -1
+		#print 'Desired_Vl: %f, Desired_Vr: %f' % (self.desired_left_velocity, self.desired_right_velocity)
 
-		if(left_duty > 1):
-			rospy.logwarn('Left duty cycle above max')
-			shift = left_duty - 1 
-			left_duty = 1 
-			right_duty -= shift
-
-		elif left_duty < -1:
-			rospy.logwarn('Left duty cycle below min')
-			shift = left_duty + 1
-			left_duty = -1
-			right_duty -= shift
-
-		if(right_duty > 1):
-			rospy.logwarn('Right duty cycle above max')
-			shift = right_duty - 1 
-			right_duty = 1 
-			left_duty -= shift
-
-		elif right_duty < -1:
-			rospy.logwarn('Right duty cycle below min')
-			shift = right_duty + 1
-			right_duty = -1
-			left_duty -= shift
-
-		self.left_duty_pub.publish(Float32(left_duty))
-		self.right_duty_pub.publish(Float32(right_duty))
 
 	# PID controllers for velocity
 	def motor_vels_cb(self, msg):
+		now = rospy.get_time()
+		time_step = now - self.last_time
+		self.last_time = now
+
+		if(time_step > 5):
+			rospy.logerr('Haven\'t had a velocity reading in over 5 seconds stoping motors until update rate restored')
+			# Set the duty
+			self.left_duty_pub.publish(Float32(0))
+			self.right_duty_pub.publish(Float32(0))
+			# Reset the integral error cause I think we should...
+			self.i_err_l = 0
+			self.i_err_r = 0
+			return
+
+
 		data = msg.data
 
+		#print self.i_err_r, self.last_err_r, time_step
+
 		# Calculate errors
+			# Proportional
+		err_l = self.desired_left_velocity - data[0]
+		err_r = self.desired_right_velocity - data[1]
+		#print 'Proportional: %f, %f' % (err_l, err_r)
+			# Derivative
+		d_err_l = (self.last_err_l - err_l) / time_step
+		d_err_r = (self.last_err_r - err_r) / time_step
+		#print 'Derivative: %f, %f' % (d_err_l, d_err_r)
+			# Integral
+		self.i_err_l = self.i_err_l + time_step * (err_l + self.last_err_l) / 2
+		self.i_err_r = self.i_err_r + time_step * (err_r + self.last_err_r) / 2
+		#print 'Integral: %f, %f' % (self.i_err_l, self.i_err_r)
+
+		# Reset last errors
+		self.last_err_r = err_r
+		self.last_err_l = err_l
+
+		# Calculate duty setting
+		duty = [ self.kp * err_l + self.kd * d_err_l + self.ki * self.i_err_l ,
+				 self.kp * err_r + self.kd * d_err_r + self.ki * self.i_err_r	]
+
+		# Clip values
+		for index in range(2):
+			if duty[index] > 1:
+				rospy.logwarn("Cliping duty cycle to 1")
+				duty[index] = 1
+			elif duty[index] < -1:
+				rospy.logwarn("Cliping duty cycle to -1")
+				duty[index] = -1 
+
+
+		#print 'Duty_l: %f, Duty_r: %f' % (duty[0], duty[1])
+
+		# Set the duty
+		self.left_duty_pub.publish(Float32(duty[0]))
+		self.right_duty_pub.publish(Float32(duty[1]))
 
 
 def main():
@@ -91,7 +114,6 @@ def main():
 	this_node = node()
 
 	rospy.spin()
-
 
 
 if __name__ == '__main__':
