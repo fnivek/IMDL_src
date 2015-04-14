@@ -102,17 +102,11 @@ def main():
 
 					# Unpack 2 little-endian uint16's
 					motor_pos = unpack('<HH', data)
-					temp0 = motor_pos[0]
-					temp1 = motor_pos[1]
-					print temp1
 
 					# publish the data
 					msg = Int32MultiArray()
-					print msg
-					msg.data = [temp0, temp1]
-					print msg.data
+					msg.data = [motor_pos[0], motor_pos[1]]
 					motor_pub.publish(msg)
-					print motor_pub
 
 if __name__ == '__main__':
 	try:
