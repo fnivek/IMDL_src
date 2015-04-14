@@ -28,7 +28,7 @@ void segmentCloud(const sensor_msgs::PointCloud2::ConstPtr& pc)
 	pcl::PassThrough<pcl::PointXYZRGB> pass;
 	pass.setInputCloud (raw_pc);
 	pass.setFilterFieldName ("y");
-	pass.setFilterLimits (0.1, 5);
+	pass.setFilterLimits (0, 1);
 	pass.filter (*indices);
 
 
@@ -38,7 +38,7 @@ void segmentCloud(const sensor_msgs::PointCloud2::ConstPtr& pc)
 	pcl::toROSMsg(*out_pc, *out_msg);
 	evil_global_pub2.publish(out_msg);
 
-	// Color region grow
+	/* Color region grow
 	pcl::RegionGrowingRGB<pcl::PointXYZRGB> reg;
 	reg.setInputCloud (raw_pc);
 	reg.setIndices (indices);
@@ -61,7 +61,7 @@ void segmentCloud(const sensor_msgs::PointCloud2::ConstPtr& pc)
 		pcl::toROSMsg(*out_pc, *out_msg);
 		evil_global_pub.publish(out_msg);
 	}
-
+	*/
 }
 
 /************************
