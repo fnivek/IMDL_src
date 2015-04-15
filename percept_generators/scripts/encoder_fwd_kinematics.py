@@ -16,7 +16,7 @@ class node:
 		self.last_time = 0
 		self.last_R = 0
 		self.last_w = 0
-		self.wheel_base = 0.3048 # 0.3048 m = 12 in
+		self.wheel_base = rospy.get_param('/wheel_base', 0.3048) # 0.3048 m = 12 in
 		self.wheel_radius = 0.06
 
 	# Use avg of last R and last w with current

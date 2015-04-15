@@ -19,11 +19,15 @@ class node:
 		self.i_err_l = 0
 		self.i_err_r = 0
 
-		self.kp = rospy.get_param('gain_p', 0.1)
-		self.kd = rospy.get_param('gain_d', 0.1)
-		self.ki = rospy.get_param('gain_i', 0.01)	# Integral scares me...
+		self.kp = rospy.get_param('gain_p', 0.25)
+		self.kd = rospy.get_param('gain_d', 0.01)
+		self.ki = rospy.get_param('gain_i', 0.05)	# Integral scares me...
 
 		self.wheel_base = rospy.get_param('/wheel_base', 0.3048) # 0.3048 m = 12 in
+
+		self.ramp_coef = 1  # Duty / s
+		self.current_duty = [0, 0]
+		self.desired_duty = [0, 0]
 
 		self.last_time = rospy.get_time()
 
@@ -65,45 +69,67 @@ class node:
 
 		data = msg.data
 
-		#print self.i_err_r, self.last_err_r, time_step
-
 		# Calculate errors
 			# Proportional
 		err_l = self.desired_left_velocity - data[0]
 		err_r = self.desired_right_velocity - data[1]
 		#print 'Proportional: %f, %f' % (err_l, err_r)
 			# Derivative
-		d_err_l = (self.last_err_l - err_l) / time_step
-		d_err_r = (self.last_err_r - err_r) / time_step
+		d_err_l = (err_l - self.last_err_l) / time_step
+		d_err_r = (err_r - self.last_err_r) / time_step
 		#print 'Derivative: %f, %f' % (d_err_l, d_err_r)
 			# Integral
 		self.i_err_l = self.i_err_l + time_step * (err_l + self.last_err_l) / 2
 		self.i_err_r = self.i_err_r + time_step * (err_r + self.last_err_r) / 2
 		#print 'Integral: %f, %f' % (self.i_err_l, self.i_err_r)
 
+
 		# Reset last errors
 		self.last_err_r = err_r
 		self.last_err_l = err_l
 
 		# Calculate duty setting
-		duty = [ self.kp * err_l + self.kd * d_err_l + self.ki * self.i_err_l ,
+		self.desired_duty = [ self.kp * err_l + self.kd * d_err_l + self.ki * self.i_err_l ,
 				 self.kp * err_r + self.kd * d_err_r + self.ki * self.i_err_r	]
 
 		# Clip values
 		for index in range(2):
-			if duty[index] > 1:
+			if self.desired_duty[index] > 1:
 				rospy.logwarn("Cliping duty cycle to 1")
-				duty[index] = 1
-			elif duty[index] < -1:
+				self.desired_duty[index] = 1
+
+				debug = [self.kp * err_l, self.kd * d_err_l, self.ki * self.i_err_l]
+				debug = map(abs, debug)
+				m = max(debug)
+				for i, v in enumerate(debug):
+					if v == m:
+						print i, v
+			elif self.desired_duty[index] < -1:
 				rospy.logwarn("Cliping duty cycle to -1")
-				duty[index] = -1 
 
+				debug = [self.kp * err_l, self.kd * d_err_l, self.ki * self.i_err_l]
+				debug = map(abs, debug)
+				m = max(debug)
+				for i, v in enumerate(debug):
+					if v == m:
+						print i, v
+				self.desired_duty[index] = -1 
 
-		#print 'Duty_l: %f, Duty_r: %f' % (duty[0], duty[1])
+		#print 'self.desired_Duty_l: %f, Duty_r: %f' % (self.desired_duty[0], self.desired_duty[1])
+
+		# Ramp function
+		for i, (d, c) in enumerate(zip(self.desired_duty, self.current_duty)):
+			if(d < c):
+				self.current_duty[i] = max([c - self.ramp_coef * time_step, d])
+			elif (d > c):
+				self.current_duty[i] = min([c + self.ramp_coef * time_step, d])
+
+		print self.current_duty
+
 
 		# Set the duty
-		self.left_duty_pub.publish(Float32(duty[0]))
-		self.right_duty_pub.publish(Float32(duty[1]))
+		self.left_duty_pub.publish(Float32(self.current_duty[0]))
+		self.right_duty_pub.publish(Float32(self.current_duty[1]))
 
 
 def main():
