@@ -42,20 +42,19 @@ public:
 		// Test openni
 		while(ros::ok())
 		{
-			ROS_INFO("Try again");
 			if(interface_ == NULL)
 			{
 				try
 				{
 					interface_ = new pcl::OpenNIGrabber();
 				}
-				catch(const openni_wrapper::OpenNIException& exception)
+				catch(const openni_wrapper::OpenNIException& e)
 				{
-					ROS_ERROR("Exception occurred while connecting to the kinect \n\t%s", exception.what());
+					ROS_ERROR("OpenNIException occurred while connecting to the kinect \n\t%s", e.what());
 				}
-				catch(...)
+				catch(const pcl::IOException& e)
 				{
-					ROS_ERROR("Unkown exception while connecting to kinect");
+					ROS_ERROR("IOException occurred while connecting to the kinect \n\t%s", e.what());
 				};
 			}
 			else
