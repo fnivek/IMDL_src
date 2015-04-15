@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 from std_msgs.msg import Int32MultiArray
-from geometry_msgs.msg import Vector3
+from percept_generators.msg import pfield
 import numpy
 import math
 
@@ -9,7 +9,7 @@ from collections import deque
 
 sizeOfDeques = 3
 sonar_data = [deque() for x in range(4)]
-pfield_pub = rospy.Publisher("sonar_pfield", Vector3, queue_size = 10)
+pfield_pub = rospy.Publisher("sonar_pfield", pfield, queue_size = 10)
 
 def avg(seq):
 	return reduce(lambda x, y: x + y, seq) / len(seq)
@@ -53,12 +53,12 @@ def sonar_data_cb(msg):
 							sonar_avg)
 	#scalar_pfields = map( lambda avg: .1 * ((-1/146000) * (avg - 40000) + 10), sonar_avg)
 
-	pfield = Vector3()
-	pfield.x = scalar_pfields[0] * -1 + scalar_pfields[1] + scalar_pfields[2] * -math.cos(math.pi/6) + scalar_pfields[3] * -math.cos(-math.pi/6)
-	pfield.y = 												scalar_pfields[2] * -math.sin(math.pi/6) + scalar_pfields[3] * -math.sin(-math.pi/6)
-	pfield.z = 0
+	pfield_msg = pfield()
+	pfield_msg.x = scalar_pfields[0] * -1 + scalar_pfields[1] + scalar_pfields[2] * -math.cos(math.pi/6) + scalar_pfields[3] * -math.cos(-math.pi/6)
+	pfield_msg.y = 												scalar_pfields[2] * -math.sin(math.pi/6) + scalar_pfields[3] * -math.sin(-math.pi/6)
 
-	pfield_pub.publish(pfield)
+
+	pfield_pub.publish(pfield_msg)
 	
 
 def main():

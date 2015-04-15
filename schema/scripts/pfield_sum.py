@@ -5,7 +5,7 @@
 
 import rospy
 from geometry_msgs.msg import Twist
-from geometry_msgs.msg import Vector3
+from percept_generators.msg import pfield
 
 motor_pub = rospy.Publisher("motor_cmd", Twist, queue_size = 10)
 
@@ -20,7 +20,7 @@ def main():
 	#Init ros
 	rospy.init_node('pfield_sum', anonymous=False)
 
-	rospy.Subscriber("/percepts/sonar_pfield", Vector3, newPfield)
+	rospy.Subscriber("/percepts/sonar_pfield", pfield, newPfield)
 
 	rospy.spin()
 
