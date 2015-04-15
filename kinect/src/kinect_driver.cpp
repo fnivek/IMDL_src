@@ -9,7 +9,7 @@
 class temp
 {
 public:
-	pcl::Grabber* interface;
+	pcl::Grabber* interface_;
 
 	ros::Publisher pc_pub_;
 
@@ -40,23 +40,52 @@ public:
 		last_time_ = ros::Time::now();
 
 		// Test openni
-		try
+		while(ros::ok())
 		{
-			interface = new pcl::OpenNIGrabber();
+			ROS_INFO("Try again");
+			if(interface_ == NULL)
+			{
+				try
+				{
+					interface_ = new pcl::OpenNIGrabber();
+				}
+				catch(const openni_wrapper::OpenNIException& exception)
+				{
+					ROS_ERROR("Exception occurred while connecting to the kinect \n\t%s", exception.what());
+				}
+				catch(...)
+				{
+					ROS_ERROR("Unkown exception while connecting to kinect");
+				};
+			}
+			else
+			{
+				break;
+			}
 		}
-		catch(const openni_wrapper::OpenNIException& exception){};
+
 
 		boost::function<void (const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr&)> callback =
 				 boost::bind (&temp::cloud_cb_, this, _1);
 
-		interface->registerCallback (callback);
+		interface_->registerCallback (callback);
 
-		interface->start ();
+		interface_->start ();
 	}
 
 	void stop_()
 	{
-		interface->stop();
+		if(interface_ != NULL)
+		{
+			interface_->stop();
+		}
+
+	}
+
+	temp():
+		interface_(NULL)
+	{
+
 	}
 };
 
