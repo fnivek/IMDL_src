@@ -1,0 +1,9 @@
+<launch>
+	<arg name="use_kinect" default="1"/>
+
+	<include file="$(find kipc_launch)/launch/percepts.launch"/>
+	<include file="$(find kipc_launch)/launch/hardware_interface.launch">
+		<arg name="use_kinect" value="$(arg use_kinect)"/>
+	</include>
+	<include file="$(find kipc_launch)/launch/schema.launch"/>
+</launch>

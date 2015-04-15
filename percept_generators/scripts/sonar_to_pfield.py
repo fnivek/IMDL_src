@@ -66,7 +66,7 @@ def main():
 	#Init ros
 	rospy.init_node('sonar_to_pfield', anonymous=False)
 
-	rospy.Subscriber("sonar_data", Int32MultiArray, sonar_data_cb)
+	rospy.Subscriber("/hardware_interface/sonar_data", Int32MultiArray, sonar_data_cb)
 
 	rospy.spin()
 

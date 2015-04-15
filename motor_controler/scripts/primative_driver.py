@@ -9,8 +9,8 @@ class node:
 		self.left_duty_pub = rospy.Publisher("left_duty", Float32, queue_size = 10)
 		self.right_duty_pub = rospy.Publisher("right_duty", Float32, queue_size = 10)
 
-		rospy.Subscriber("motor_cmd", Twist, self.motorCmdCb)
-		rospy.Subscriber("motor_vels", Float64MultiArray, self.motor_vels_cb)
+		rospy.Subscriber("/schema/motor_cmd", Twist, self.motorCmdCb)
+		rospy.Subscriber("/percepts/motor_vels", Float64MultiArray, self.motor_vels_cb)
 
 		self.desired_right_velocity = 0
 		self.desired_left_velocity = 0

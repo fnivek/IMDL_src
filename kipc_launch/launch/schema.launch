@@ -1,0 +1,5 @@
+<launch>
+	<group ns="schema">
+		<node pkg="schema" type="pfield_sum.py" name="pfield_sum"/>
+	</group>
+</launch>

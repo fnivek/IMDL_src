@@ -20,7 +20,7 @@ def main():
 	#Init ros
 	rospy.init_node('pfield_sum', anonymous=False)
 
-	rospy.Subscriber("sonar_pfield", Vector3, newPfield)
+	rospy.Subscriber("/percepts/sonar_pfield", Vector3, newPfield)
 
 	rospy.spin()
 

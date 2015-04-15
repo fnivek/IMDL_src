@@ -87,7 +87,7 @@ def main():
 	#Init ros
 	rospy.init_node('encoder_to_vels', anonymous=False)
 
-	rospy.Subscriber("motor_position", Int32MultiArray, encoder_cb)
+	rospy.Subscriber("/hardware_interface/motor_position", Int32MultiArray, encoder_cb)
 
 	rospy.spin()
 
