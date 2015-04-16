@@ -5,16 +5,22 @@
 #include <pcl/search/kdtree.h>
 #include <pcl/search/search.h>
 #include <pcl/PointIndices.h>
-#include <pcl/segmentation/region_growing_rgb.h>
+//#include <pcl/segmentation/region_growing_rgb.h>
 #include <pcl/filters/passthrough.h>
 #include <pcl/point_types.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/features/normal_3d.h>
+
 #include <stdio.h>
 
 
 class object_extractor
 {
 private:	// Type defs
-	typedef pcl::PointCloud<pcl::PointXYZ> point;
+	typedef pcl::PointXYZ point;
+	typedef pcl::PointCloud<point> pointCloud;
 	typedef sensor_msgs::PointCloud2 point_msg;
 
 private:	// Vars
@@ -60,17 +66,13 @@ object_extractor::object_extractor() :
 void object_extractor::CloudCb(const point_msg::ConstPtr& pc)
 {
 	// Convert from ros msg
-	point::Ptr raw_pc(new point);
+	pointCloud::Ptr raw_pc(new pointCloud);
 	pcl::fromROSMsg(*pc, *raw_pc);
-
-	// Make kd tree
-	pcl::search::Search <pcl::PointXYZ>::Ptr tree =
-			boost::shared_ptr<pcl::search::Search<pcl::PointXYZ> > (new pcl::search::KdTree<pcl::PointXYZ>);
 
 	/* Debug
 	float miny = 9999999999;
 	float maxy = -9999999999;
-	for (pcl::PointCloud<pcl::PointXYZ>::const_iterator it = raw_pc->begin(); it < raw_pc->end(); ++it)
+	for (pcl::PointCloud<point>::const_iterator it = raw_pc->begin(); it < raw_pc->end(); ++it)
 	{
 		float y = it->y;
 		if(y < miny)
@@ -85,22 +87,38 @@ void object_extractor::CloudCb(const point_msg::ConstPtr& pc)
 	ROS_INFO("yE[%f, %f]", miny, maxy);
 	*/
 
+	// Get rid of points to low and points that are to high
 	pcl::IndicesPtr indices (new std::vector <int>);
-	pcl::PassThrough<pcl::PointXYZ> pass;
+	pcl::PassThrough<point> pass;
 	pass.setInputCloud (raw_pc);
 	pass.setFilterFieldName ("y");
 	pass.setFilterLimits (min_height_, max_height_);
-	pass.filter (*indices);
+	pointCloud::Ptr height_filtered_pc(new pointCloud);
+	pass.filter (*height_filtered_pc);
 
 
+
+	// Debug output
 	point_msg::Ptr out_msg(new point_msg);
-	point::Ptr out_pc(new point);
-	pcl::copyPointCloud(*raw_pc, *indices, *out_pc);
-	pcl::toROSMsg(*out_pc, *out_msg);
+	//point::Ptr out_pc(new point);
+	//pcl::copyPointCloud(*raw_pc, *indices, *out_pc);
+	pcl::toROSMsg(*height_filtered_pc, *out_msg);
 	test_pub1_.publish(out_msg);
 
+	// Find a sphere
+	// Estimate point normals
+	// Make kd tree
+	//pcl::search::Search <point>::Ptr tree =
+	//		boost::shared_ptr<pcl::search::Search<point> > (new pcl::search::KdTree<point>);
+	//pcl::NormalEstimation<point, pcl::Normal> ne;
+	//ne.setSearchMethod(tree);
+	//ne.setInputCloud()
+
 	/* Color region grow
-	pcl::RegionGrowingRGB<pcl::PointXYZ> reg;
+	// Make kd tree
+	pcl::search::Search <point>::Ptr tree =
+			boost::shared_ptr<pcl::search::Search<point> > (new pcl::search::KdTree<point>);
+	pcl::RegionGrowingRGB<point> reg;
 	reg.setInputCloud (raw_pc);
 	reg.setIndices (indices);
 	reg.setSearchMethod (tree);
