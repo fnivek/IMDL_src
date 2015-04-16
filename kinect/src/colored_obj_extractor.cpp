@@ -10,36 +10,97 @@
 #include <pcl/point_types.h>
 #include <stdio.h>
 
-ros::Publisher evil_global_pub;
-ros::Publisher evil_global_pub2;
 
-void segmentCloud(const sensor_msgs::PointCloud2::ConstPtr& pc)
+class object_extractor
+{
+private:	// Type defs
+	typedef pcl::PointCloud<pcl::PointXYZ> point;
+	typedef sensor_msgs::PointCloud2 point_msg;
+
+private:	// Vars
+	double min_height_;
+	double max_height_;
+
+public:		// Vars
+	ros::Publisher test_pub1_;
+	ros::Publisher test_pub2_;
+
+	ros::Subscriber raw_pc_sub_;
+
+public:		// Funcitons
+	object_extractor();
+
+	void CloudCb(const point_msg::ConstPtr& pc);
+
+
+};
+
+object_extractor::object_extractor() :
+		min_height_(0),
+		max_height_(5)
+{
+
+	ros::NodeHandle nh;
+	ros::NodeHandle private_nh("~");
+
+	raw_pc_sub_ = nh.subscribe<point_msg>("/camera/depth/points", 10, &object_extractor::CloudCb, this);
+
+	test_pub1_ = nh.advertise<point_msg>(nh.resolveName("test_pc1"), 10);
+	test_pub2_ = nh.advertise<point_msg>(nh.resolveName("test_pc2"), 10);
+
+	std::string name = private_nh.resolveName("min_pc_height");
+	private_nh.param<double>(name.c_str(), min_height_, -0.5);
+	ROS_INFO("Param %s value %f", name.c_str(), min_height_);
+
+	name = private_nh.resolveName("max_pc_height");
+	private_nh.param<double>(name.c_str(), max_height_, 0.05);
+	ROS_INFO("Param %s value %f", name.c_str(), max_height_);
+}
+
+void object_extractor::CloudCb(const point_msg::ConstPtr& pc)
 {
 	// Convert from ros msg
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr raw_pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+	point::Ptr raw_pc(new point);
 	pcl::fromROSMsg(*pc, *raw_pc);
 
 	// Make kd tree
-	pcl::search::Search <pcl::PointXYZRGB>::Ptr tree =
-			boost::shared_ptr<pcl::search::Search<pcl::PointXYZRGB> > (new pcl::search::KdTree<pcl::PointXYZRGB>);
+	pcl::search::Search <pcl::PointXYZ>::Ptr tree =
+			boost::shared_ptr<pcl::search::Search<pcl::PointXYZ> > (new pcl::search::KdTree<pcl::PointXYZ>);
 
-	// Shrink in the y axis
+	/* Debug
+	float miny = 9999999999;
+	float maxy = -9999999999;
+	for (pcl::PointCloud<pcl::PointXYZ>::const_iterator it = raw_pc->begin(); it < raw_pc->end(); ++it)
+	{
+		float y = it->y;
+		if(y < miny)
+		{
+			miny = y;
+		}
+		else if(y > maxy)
+		{
+			maxy = y;
+		}
+	}
+	ROS_INFO("yE[%f, %f]", miny, maxy);
+	*/
+
 	pcl::IndicesPtr indices (new std::vector <int>);
-	pcl::PassThrough<pcl::PointXYZRGB> pass;
+	pcl::PassThrough<pcl::PointXYZ> pass;
 	pass.setInputCloud (raw_pc);
 	pass.setFilterFieldName ("y");
-	pass.setFilterLimits (0, 1);
+	pass.setFilterLimits (min_height_, max_height_);
 	pass.filter (*indices);
 
 
-	sensor_msgs::PointCloud2::Ptr out_msg(new sensor_msgs::PointCloud2);
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr out_pc(new pcl::PointCloud<pcl::PointXYZRGB>);
+	point_msg::Ptr out_msg(new point_msg);
+	point::Ptr out_pc(new point);
 	pcl::copyPointCloud(*raw_pc, *indices, *out_pc);
 	pcl::toROSMsg(*out_pc, *out_msg);
-	evil_global_pub2.publish(out_msg);
+	test_pub1_.publish(out_msg);
 
 	/* Color region grow
-	pcl::RegionGrowingRGB<pcl::PointXYZRGB> reg;
+	pcl::RegionGrowingRGB<pcl::PointXYZ> reg;
 	reg.setInputCloud (raw_pc);
 	reg.setIndices (indices);
 	reg.setSearchMethod (tree);
@@ -70,18 +131,11 @@ void segmentCloud(const sensor_msgs::PointCloud2::ConstPtr& pc)
 int main(int argc, char** argv)
 {
 	//Initialize ROS
-	ros::init(argc, argv, "colored_obj_extractor");
-	ros::NodeHandle nh;
+	ros::init(argc, argv, "object_extractor");
+
+	object_extractor obj_extract;
+
 	ros::Rate update_rate(100);
-
-	ros::Subscriber pc_listener =
-			nh.subscribe<sensor_msgs::PointCloud2>("/raw_pc",
-			100,
-			&segmentCloud);
-
-	evil_global_pub = nh.advertise<sensor_msgs::PointCloud2>("colored_objs", 10);
-	evil_global_pub2 = nh.advertise<sensor_msgs::PointCloud2>("colored_objs2", 10);
-
 	while(ros::ok())
 	{
 		update_rate.sleep();
