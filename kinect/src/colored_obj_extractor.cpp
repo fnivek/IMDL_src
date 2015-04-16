@@ -45,6 +45,8 @@ private: 	// Functions
 
 	pointCloud::Ptr voxelDownSample_(pointCloud::Ptr pc, float voxel_size);
 
+	std::vector<pcl::PointIndices> euclideanSegment_(pointCloud::Ptr pc, float max_distance, int min_cluster_size, int max_cluster_size);
+
 public:		// Funcitons
 	object_extractor();
 
@@ -122,6 +124,34 @@ object_extractor::pointCloud::Ptr object_extractor::voxelDownSample_(pointCloud:
 	return vox_pc;
 }
 
+// Euclidean segmentation
+// TODO: Should the vector be returned as a pointer???
+std::vector<pcl::PointIndices> object_extractor::euclideanSegment_(pointCloud::Ptr pc, float max_distance, int min_cluster_size, int max_cluster_size)
+{
+	//Create KdTree for search method (see pcl documentation for more info on KdTrees)
+	//And give it input
+	pcl::search::KdTree<point>::Ptr tree(new pcl::search::KdTree<point>);
+	tree->setInputCloud(pc);
+
+	//Create a vector of vectors which represent the indices of each cluster
+	std::vector<pcl::PointIndices> cluster_indices;
+
+	//Set up the Euclidean Extractor
+	pcl::EuclideanClusterExtraction<point> extractor;
+	extractor.setClusterTolerance(max_distance);			//Points must be within cluster_tolerance meters of eachother
+	extractor.setMinClusterSize(min_cluster_size);			//Min number of points in cluster
+	extractor.setMaxClusterSize(max_cluster_size);			//Max number of points in cluster
+	extractor.setSearchMethod(tree);						//search method
+	extractor.setInputCloud(pc);							//Input cloud
+	
+	//Perform extraction
+	extractor.extract(cluster_indices);
+	//pcl::extractEuclideanClusters(*pc, cluster_indices, )
+	ROS_INFO("Number of clusters is %i", (int)cluster_indices.size());
+	return cluster_indices;
+
+}
+
 void object_extractor::CloudCb_(const point_msg::ConstPtr& pc)
 {
 	// Convert from ros msg
@@ -156,30 +186,8 @@ void object_extractor::CloudCb_(const point_msg::ConstPtr& pc)
 	//VoxelGrid downsample
 	pointCloud::Ptr vox_pc = voxelDownSample_(height_filtered_pc, voxel_size_);
 	
-
-	// Euclidiean Extraction
-	//Create KdTree for search method (see pcl documentation for more info on KdTrees)
-	//And give it input
-	pcl::search::KdTree<point>::Ptr tree2(new pcl::search::KdTree<point>);
-	tree2->setInputCloud(vox_pc);
-
-	//Create a vector of vectors which represent the indices of each cluster
-	std::vector<pcl::PointIndices> cluster_indices;
-
-	ROS_INFO("Setup Euclidean extractor");
-	//Set up the Euclidean Extractor
-	pcl::EuclideanClusterExtraction<point> extractor;
-	extractor.setClusterTolerance(cluster_tolerance_);		//Points must be within cluster_tolerance meters of eachother
-	extractor.setMinClusterSize(min_cluster_size_);			//Min number of points in cluster
-	extractor.setMaxClusterSize(max_cluster_size_);			//Max number of points in cluster
-	extractor.setSearchMethod(tree2);						//search method
-	extractor.setInputCloud(vox_pc);						//Input cloud
-	
-	ROS_INFO("Performing Euclidean extraction");
-	//Perform extraction
-	extractor.extract(cluster_indices);
-	//pcl::extractEuclideanClusters(*vox_pc, cluster_indices, )
-	ROS_INFO("Number of clusters is %i", (int)cluster_indices.size());
+	// Euclideian segmentation
+	std::vector<pcl::PointIndices> cluster_indices = euclideanSegment_(vox_pc, cluster_tolerance_, min_cluster_size_, max_cluster_size_);
 
 	//Publish the segmented cloud
 	point_msg::Ptr out_pc(new sensor_msgs::PointCloud2);							//Create the ros msg
@@ -190,7 +198,7 @@ void object_extractor::CloudCb_(const point_msg::ConstPtr& pc)
 
 		pcl::PointCloud<point>::Ptr cluster_pc(new pcl::PointCloud<point>);						//Make a new point cloud
 
-		pcl::copyPointCloud(*vox_pc, cluster_it->indices, *cluster_pc);				//Copy new point cloud
+		pcl::copyPointCloud(*vox_pc, cluster_it->indices, *cluster_pc);							//Copy new point cloud
 
 		pcl::toROSMsg(*cluster_pc, *out_pc);													//Fill the msg
 		out_pc->header = pc->header;															//Change the header
