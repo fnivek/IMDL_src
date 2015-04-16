@@ -40,10 +40,13 @@ public:		// Vars
 
 	ros::Subscriber raw_pc_sub_;
 
+private: 	// Functions
+	pointCloud::Ptr threasholdAxis_(pointCloud::Ptr pc, const std::string axis, float min, float max);
+
 public:		// Funcitons
 	object_extractor();
 
-	void CloudCb(const point_msg::ConstPtr& pc);
+	void CloudCb_(const point_msg::ConstPtr& pc);
 
 
 };
@@ -56,7 +59,7 @@ object_extractor::object_extractor() :
 	ros::NodeHandle nh;
 	ros::NodeHandle private_nh("~");
 
-	raw_pc_sub_ = nh.subscribe<point_msg>("/camera/depth/points", 10, &object_extractor::CloudCb, this);
+	raw_pc_sub_ = nh.subscribe<point_msg>("/camera/depth/points", 10, &object_extractor::CloudCb_, this);
 
 	test_pub1_ = nh.advertise<point_msg>(nh.resolveName("test_pc1"), 10);
 	test_pub2_ = nh.advertise<point_msg>(nh.resolveName("test_pc2"), 10);
@@ -88,7 +91,23 @@ object_extractor::object_extractor() :
 	ROS_INFO("Param %s value %i", name.c_str(), max_cluster_size_);
 }
 
-void object_extractor::CloudCb(const point_msg::ConstPtr& pc)
+// Threashold axis
+object_extractor::pointCloud::Ptr object_extractor::threasholdAxis_(pointCloud::Ptr pc, const std::string axis, float min, float max)
+{
+	ROS_INFO("None axis threasholded pc has %i data points", pc->width * pc->height);
+	// Get rid of points to low and points that are to high
+	pcl::IndicesPtr indices (new std::vector <int>);
+	pcl::PassThrough<point> pass;
+	pass.setInputCloud (pc);
+	pass.setFilterFieldName ("y");		// TODO: use axis instead
+	pass.setFilterLimits (min, max);
+	pointCloud::Ptr out_pc(new pointCloud);
+	pass.filter (*out_pc);
+	ROS_INFO("Axis (%s) threasholded pc has %i data points", axis.c_str(), out_pc->width * out_pc->height);
+	return out_pc;
+}
+
+void object_extractor::CloudCb_(const point_msg::ConstPtr& pc)
 {
 	// Convert from ros msg
 	pointCloud::Ptr raw_pc(new pointCloud);
@@ -112,17 +131,7 @@ void object_extractor::CloudCb(const point_msg::ConstPtr& pc)
 	ROS_INFO("yE[%f, %f]", miny, maxy);
 	*/
 	// Down sampeling
-	ROS_INFO("Raw input has %i data points", raw_pc->width * raw_pc->height);
-	// Get rid of points to low and points that are to high
-	pcl::IndicesPtr indices (new std::vector <int>);
-	pcl::PassThrough<point> pass;
-	pass.setInputCloud (raw_pc);
-	pass.setFilterFieldName ("y");
-	pass.setFilterLimits (min_height_, max_height_);
-	pointCloud::Ptr height_filtered_pc(new pointCloud);
-	pass.filter (*height_filtered_pc);
-
-	ROS_INFO("After simple location down sample the point cloud has %i data points", height_filtered_pc->width * height_filtered_pc->height);
+	pointCloud::Ptr height_filtered_pc = threasholdAxis_(raw_pc, "y", min_height_, max_height_);
 
 	// Debug output
 	point_msg::Ptr out_msg(new point_msg);
@@ -177,6 +186,8 @@ void object_extractor::CloudCb(const point_msg::ConstPtr& pc)
 		out_pc->header = pc->header;															//Change the header
 		/*out_pc->header.frame_id = pc->header.frame_id;										//Set frame id
 		out_pc->header.stamp = pc->header.stamp;*/												//Set time stamp
+
+		// Test for spheres
 		test_pub2_.publish(out_pc);																//Publish the msgs
 
 		ROS_INFO("This euclidean segment has %i data points", cluster_pc->width * cluster_pc->height);
