@@ -43,6 +43,8 @@ public:		// Vars
 private: 	// Functions
 	pointCloud::Ptr threasholdAxis_(pointCloud::Ptr pc, const std::string axis, float min, float max);
 
+	pointCloud::Ptr voxelDownSample_(pointCloud::Ptr pc, float voxel_size);
+
 public:		// Funcitons
 	object_extractor();
 
@@ -107,6 +109,19 @@ object_extractor::pointCloud::Ptr object_extractor::threasholdAxis_(pointCloud::
 	return out_pc;
 }
 
+// Down sample with voxels
+object_extractor::pointCloud::Ptr object_extractor::voxelDownSample_(pointCloud::Ptr pc, float voxel_size)
+{
+	ROS_INFO("Before %f cube voxel grid downsample point cloud has %i data points", voxel_size, pc->width * pc->height);
+	pcl::VoxelGrid<point> vox;
+	vox.setInputCloud(pc);
+	vox.setLeafSize(voxel_size, voxel_size, voxel_size);
+	pointCloud::Ptr vox_pc(new pointCloud);
+	vox.filter(*vox_pc);
+	ROS_INFO("After %f cube voxel grid downsample point cloud has %i data points", voxel_size, vox_pc->width * vox_pc->height);
+	return vox_pc;
+}
+
 void object_extractor::CloudCb_(const point_msg::ConstPtr& pc)
 {
 	// Convert from ros msg
@@ -139,13 +154,8 @@ void object_extractor::CloudCb_(const point_msg::ConstPtr& pc)
 	test_pub1_.publish(out_msg);
 
 	//VoxelGrid downsample
-	pcl::VoxelGrid<point> vox;
-	vox.setInputCloud(height_filtered_pc);
-	vox.setLeafSize(voxel_size_, voxel_size_, voxel_size_);
-	pointCloud::Ptr vox_pc(new pointCloud);
-	vox.filter(*vox_pc);
-
-	ROS_INFO("After %f cube voxel grid downsample point cloud has %i data points", voxel_size_, vox_pc->width * vox_pc->height);
+	pointCloud::Ptr vox_pc = voxelDownSample_(height_filtered_pc, voxel_size_);
+	
 
 	// Euclidiean Extraction
 	//Create KdTree for search method (see pcl documentation for more info on KdTrees)
