@@ -26,6 +26,15 @@ private:	// Type defs
 	typedef pcl::PointCloud<point> pointCloud;
 	typedef sensor_msgs::PointCloud2 point_msg;
 
+public:		// Structs
+	typedef struct object
+	{
+		pcl::PointIndices::Ptr inliers_;
+		pcl::ModelCoefficients::Ptr coeffs_;
+		pcl::SacModel model_;
+		float fit_;								// Pecentage between 0 and 1 (inliers / total)
+	} object;
+
 private:	// Vars
 	double min_height_;
 	double max_height_;
@@ -46,6 +55,8 @@ private: 	// Functions
 	pointCloud::Ptr voxelDownSample_(pointCloud::Ptr pc, float voxel_size);
 
 	std::vector<pcl::PointIndices> euclideanSegment_(pointCloud::Ptr pc, float max_distance, int min_cluster_size, int max_cluster_size);
+
+	void fitShape_(pointCloud::Ptr pc, object& obj);
 
 public:		// Funcitons
 	object_extractor();
@@ -152,6 +163,42 @@ std::vector<pcl::PointIndices> object_extractor::euclideanSegment_(pointCloud::P
 
 }
 
+void object_extractor::fitShape_(pointCloud::Ptr pc, object& obj)
+{
+	ROS_INFO("Starting shape extraction");
+	// Estimate point normals
+	// Make kd tree
+	pcl::search::KdTree<point>::Ptr tree(new pcl::search::KdTree<point>);
+	pcl::NormalEstimation<point, pcl::Normal> ne;
+	ne.setSearchMethod(tree);
+	ne.setInputCloud(pc);
+	ne.setKSearch(50);
+	pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
+	ne.compute(*normals);
+
+	// Set up segmenter
+	pcl::SACSegmentationFromNormals<point, pcl::Normal> seg;
+	seg.setOptimizeCoefficients(true);
+	seg.setModelType(obj.model_);
+	seg.setMethodType(pcl::SAC_RANSAC);
+	seg.setNormalDistanceWeight(0.1);
+	seg.setMaxIterations(50);
+	seg.setDistanceThreshold(0.05);
+	seg.setRadiusLimits(0, 1);
+	seg.setInputCloud(pc);
+	seg.setInputNormals(normals);
+
+	// Segment data
+	obj.coeffs_ = boost::shared_ptr<pcl::ModelCoefficients>(new pcl::ModelCoefficients());
+	obj.inliers_ = boost::shared_ptr<pcl::PointIndices>(new pcl::PointIndices());
+	seg.segment(*obj.inliers_, *obj.coeffs_);
+
+	obj.fit_ = 1.0 * obj.inliers_->indices.size() / (pc->width * pc->height);
+
+	ROS_INFO("%f%% fit", obj.fit_ * 100);
+}
+
+
 void object_extractor::CloudCb_(const point_msg::ConstPtr& pc)
 {
 	// Convert from ros msg
@@ -189,84 +236,40 @@ void object_extractor::CloudCb_(const point_msg::ConstPtr& pc)
 	// Euclideian segmentation
 	std::vector<pcl::PointIndices> cluster_indices = euclideanSegment_(vox_pc, cluster_tolerance_, min_cluster_size_, max_cluster_size_);
 
-	//Publish the segmented cloud
-	point_msg::Ptr out_pc(new sensor_msgs::PointCloud2);							//Create the ros msg
 
 	for(std::vector<pcl::PointIndices>::const_iterator cluster_it = cluster_indices.begin();	//Iterate through clusters
 			cluster_it != cluster_indices.end(); ++cluster_it)
 	{
 
-		pcl::PointCloud<point>::Ptr cluster_pc(new pcl::PointCloud<point>);						//Make a new point cloud
+		pointCloud::Ptr cluster_pc(new pointCloud);												//Make a new point cloud
 
 		pcl::copyPointCloud(*vox_pc, cluster_it->indices, *cluster_pc);							//Copy new point cloud
 
-		pcl::toROSMsg(*cluster_pc, *out_pc);													//Fill the msg
-		out_pc->header = pc->header;															//Change the header
-		/*out_pc->header.frame_id = pc->header.frame_id;										//Set frame id
-		out_pc->header.stamp = pc->header.stamp;*/												//Set time stamp
+		object obj;
+		obj.model_ = pcl::SACMODEL_SPHERE;
+		fitShape_(cluster_pc, obj);																			//Fit a shape to the data
 
-		// Test for spheres
-		test_pub2_.publish(out_pc);																//Publish the msgs
+		pointCloud::Ptr shape_pc(new pointCloud);
+
+		if(obj.inliers_->indices.size() != 0)
+		{
+			//Publish the segmented cloud
+			point_msg::Ptr out_pc(new sensor_msgs::PointCloud2);									//Create the ros msg
+			pcl::copyPointCloud(*cluster_pc, *obj.inliers_, *shape_pc);
+			pcl::toROSMsg(*cluster_pc, *out_pc);													//Fill the msg
+			out_pc->header = pc->header;															//Change the header
+			/*out_pc->header.frame_id = pc->header.frame_id;										//Set frame id
+			out_pc->header.stamp = pc->header.stamp;*/												//Set time stamp
+			test_pub2_.publish(out_pc);																//Publish the msgs
+		}
+		else
+		{
+			ROS_INFO("Couldn't fit shape");
+		}
 
 		ROS_INFO("This euclidean segment has %i data points", cluster_pc->width * cluster_pc->height);
 	}
 
-	ROS_INFO("Starting Sphere extraction");
-	// Estimate point normals
-	// Make kd tree
-	pcl::search::KdTree<point>::Ptr tree(new pcl::search::KdTree<point>);
-	pcl::NormalEstimation<point, pcl::Normal> ne;
-	ne.setSearchMethod(tree);
-	ne.setInputCloud(vox_pc);
-	ne.setKSearch(50);
-	pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
-	ne.compute(*normals);
-
-	// Set up segmenter
-	pcl::SACSegmentationFromNormals<point, pcl::Normal> seg;
-	seg.setOptimizeCoefficients(true);
-	seg.setModelType(pcl::SACMODEL_SPHERE);
-	seg.setMethodType(pcl::SAC_RANSAC);
-	seg.setNormalDistanceWeight(0.1);
-	seg.setMaxIterations(100);
-	seg.setDistanceThreshold(0.05);
-	seg.setRadiusLimits(0, 0.1);
-	seg.setInputCloud(vox_pc);
-	seg.setInputNormals(normals);
-
-	// Segment data
-	pcl::ModelCoefficients::Ptr coeff(new pcl::ModelCoefficients);
-	pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
-	seg.segment(*inliers, *coeff);
-
-
-	/* Color region grow
-	// Make kd tree
-	pcl::search::Search <point>::Ptr tree =
-			boost::shared_ptr<pcl::search::Search<point> > (new pcl::search::KdTree<point>);
-	pcl::RegionGrowingRGB<point> reg;
-	reg.setInputCloud (raw_pc);
-	reg.setIndices (indices);
-	reg.setSearchMethod (tree);
-	reg.setDistanceThreshold (10);
-	reg.setPointColorThreshold (6);
-	reg.setRegionColorThreshold (5);
-	reg.setMinClusterSize (200);
-
-	// Get the cloud
-	std::vector <pcl::PointIndices> clusters;
-	reg.extract(clusters);
-
-
-	// Output msgs
-
-	for(std::vector<pcl::PointIndices>::iterator it = clusters.begin(); it < clusters.end(); ++it)
-	{
-		pcl::copyPointCloud(*raw_pc, *it, *out_pc);
-		pcl::toROSMsg(*out_pc, *out_msg);
-		evil_global_pub.publish(out_msg);
-	}
-	*/
 }
 
 /************************
