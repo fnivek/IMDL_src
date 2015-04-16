@@ -12,6 +12,7 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/features/normal_3d.h>
+#include <pcl/ModelCoefficients.h>
 
 #include <stdio.h>
 
@@ -97,22 +98,38 @@ void object_extractor::CloudCb(const point_msg::ConstPtr& pc)
 	pass.filter (*height_filtered_pc);
 
 
-
 	// Debug output
 	point_msg::Ptr out_msg(new point_msg);
-	//point::Ptr out_pc(new point);
-	//pcl::copyPointCloud(*raw_pc, *indices, *out_pc);
 	pcl::toROSMsg(*height_filtered_pc, *out_msg);
 	test_pub1_.publish(out_msg);
 
-	// Find a sphere
 	// Estimate point normals
 	// Make kd tree
-	//pcl::search::Search <point>::Ptr tree =
-	//		boost::shared_ptr<pcl::search::Search<point> > (new pcl::search::KdTree<point>);
-	//pcl::NormalEstimation<point, pcl::Normal> ne;
-	//ne.setSearchMethod(tree);
-	//ne.setInputCloud()
+	pcl::search::KdTree<point>::Ptr tree(new pcl::search::KdTree<point>);
+	pcl::NormalEstimation<point, pcl::Normal> ne;
+	ne.setSearchMethod(tree);
+	ne.setInputCloud(height_filtered_pc);
+	ne.setKSearch(50);
+	pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
+	ne.compute(*normals);
+
+	// Set up segmenter
+	pcl::SACSegmentationFromNormals<point, pcl::Normal> seg;
+	seg.setOptimizeCoefficients(true);
+	seg.setModelType(pcl::SACMODEL_SPHERE);
+	seg.setMethodType(pcl::SAC_RANSAC);
+	seg.setNormalDistanceWeight(0.1);
+	seg.setMaxIterations(100);
+	seg.setDistanceThreshold(0.05);
+	seg.setRadiusLimits(0, 0.1);
+	seg.setInputCloud(height_filtered_pc);
+	seg.setInputNormals(normals);
+
+	// Segment data
+	pcl::ModelCoefficients::Ptr coeff(new pcl::ModelCoefficients);
+	pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+	seg.segment(*inliers, *coeff);
+
 
 	/* Color region grow
 	// Make kd tree
