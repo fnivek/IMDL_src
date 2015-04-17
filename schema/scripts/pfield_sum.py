@@ -24,8 +24,8 @@ class node:
 		# Vector Sum 
 		vector_sum = [0, 0]
 		for p in self.pfields:
-			vector_sum[0] = vector_sum[0] + p.x
-			vector_sum[1] = vector_sum[1] + p.y
+			vector_sum[0] = vector_sum[0] + p.vector.x
+			vector_sum[1] = vector_sum[1] + p.vector.y
 
 		print vector_sum
 

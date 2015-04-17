@@ -69,7 +69,7 @@ add_message_files(
  generate_messages(
    DEPENDENCIES
    std_msgs
-   #geometry_msgs
+   geometry_msgs
  )
 
 ###################################
@@ -84,7 +84,7 @@ add_message_files(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES percept_generators
-  CATKIN_DEPENDS message_runtime #geometry_msgs roscpp rospy std_msgs
+  CATKIN_DEPENDS message_runtime geometry_msgs #roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
 

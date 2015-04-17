@@ -54,8 +54,9 @@ def sonar_data_cb(msg):
 	#scalar_pfields = map( lambda avg: .1 * ((-1/146000) * (avg - 40000) + 10), sonar_avg)
 
 	pfield_msg = pfield()
-	pfield_msg.x = scalar_pfields[0] * -1 + scalar_pfields[1] + scalar_pfields[2] * -math.cos(math.pi/6) + scalar_pfields[3] * -math.cos(-math.pi/6)
-	pfield_msg.y = 												scalar_pfields[2] * -math.sin(math.pi/6) + scalar_pfields[3] * -math.sin(-math.pi/6)
+	pfield_msg.vector.x = scalar_pfields[0] * -1 + scalar_pfields[1] + scalar_pfields[2] * -math.cos(math.pi/6) + scalar_pfields[3] * -math.cos(-math.pi/6)
+	pfield_msg.vector.y = 											   scalar_pfields[2] * -math.sin(math.pi/6) + scalar_pfields[3] * -math.sin(-math.pi/6)
+	pfield_msg.vector.z = 0
 	pfield_msg.header.stamp = rospy.Time.now()
 	pfield_msg.header.frame_id = "/base_link"
 	pfield_msg.decay_time = 0.1
