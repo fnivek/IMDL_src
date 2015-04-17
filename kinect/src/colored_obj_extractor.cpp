@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <percept_generators/pfield.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/search/kdtree.h>
@@ -16,6 +17,8 @@
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/filters/voxel_grid.h>
 
+#include <cmath>
+
 #include <stdio.h>
 
 
@@ -25,6 +28,7 @@ private:	// Type defs
 	typedef pcl::PointXYZ point;
 	typedef pcl::PointCloud<point> pointCloud;
 	typedef sensor_msgs::PointCloud2 point_msg;
+	typedef Eigen::Matrix<float, 4, 1> vector4;
 
 public:		// Structs
 	typedef struct object
@@ -32,6 +36,7 @@ public:		// Structs
 		pcl::PointIndices::Ptr inliers_;
 		pcl::ModelCoefficients::Ptr coeffs_;
 		pcl::SacModel model_;
+		vector4 centroid_;
 		float fit_;								// Pecentage between 0 and 1 (inliers / total)
 	} object;
 
@@ -42,12 +47,13 @@ private:	// Vars
 	int min_cluster_size_;		//Minimum number of points in a cluster
 	int max_cluster_size_;		//Maximum number of points in a cluster
 	double voxel_size_;
-
-public:		// Vars
 	ros::Publisher test_pub1_;
 	ros::Publisher test_pub2_;
-
 	ros::Subscriber raw_pc_sub_;
+	ros::Publisher pfield_pub_;
+
+public:		// Vars
+
 
 private: 	// Functions
 	pointCloud::Ptr threasholdAxis_(pointCloud::Ptr pc, const std::string axis, float min, float max);
@@ -57,6 +63,8 @@ private: 	// Functions
 	std::vector<pcl::PointIndices> euclideanSegment_(pointCloud::Ptr pc, float max_distance, int min_cluster_size, int max_cluster_size);
 
 	void fitShape_(pointCloud::Ptr pc, object& obj);
+
+	void publishPfieldFromCentroid(vector4 centroid, float magnitude);
 
 public:		// Funcitons
 	object_extractor();
@@ -78,6 +86,7 @@ object_extractor::object_extractor() :
 
 	test_pub1_ = nh.advertise<point_msg>(nh.resolveName("test_pc1"), 10);
 	test_pub2_ = nh.advertise<point_msg>(nh.resolveName("test_pc2"), 10);
+	pfield_pub_ = nh.advertise<percept_generators::pfield>(nh.resolveName("kinect_pfield"), 10);
 
 	//Get some ros params
 	std::string name = private_nh.resolveName("min_pc_height");
@@ -103,7 +112,7 @@ object_extractor::object_extractor() :
 
 	name = private_nh.resolveName("voxel_size");									//Size of a voxel
 	private_nh.param<double>(name.c_str(), voxel_size_, 0.01);
-	ROS_INFO("Param %s value %i", name.c_str(), max_cluster_size_);
+	ROS_INFO("Param %s value %f", name.c_str(), voxel_size_);
 }
 
 // Threashold axis
@@ -193,9 +202,42 @@ void object_extractor::fitShape_(pointCloud::Ptr pc, object& obj)
 	obj.inliers_ = boost::shared_ptr<pcl::PointIndices>(new pcl::PointIndices());
 	seg.segment(*obj.inliers_, *obj.coeffs_);
 
-	obj.fit_ = 1.0 * obj.inliers_->indices.size() / (pc->width * pc->height);
+	unsigned int num_inliers = obj.inliers_->indices.size();
+
+	obj.fit_ = 1.0 * num_inliers / (pc->width * pc->height);
+
+	// Find centroid of inliers
+	if(num_inliers != 0)
+	{
+		pcl::compute3DCentroid(*pc, *obj.inliers_, obj.centroid_);
+	}
+	else
+	{
+		obj.centroid_ = vector4::Zero();
+	}
 
 	ROS_INFO("%f%% fit", obj.fit_ * 100);
+}
+
+// Converts a centroid into a pfield in the direction based on the vector produced
+//		By the xz cordinates of the centroid (The kinect defines y as up down, x left right, and z as depth)
+void object_extractor::publishPfieldFromCentroid(vector4 centroid, float magnitude)
+{
+	// TODO: Learn linear algebra so you can use Eigen how its suppose to be used...
+
+	// Find angle
+	float angle = atan2(centroid(0), centroid(2));
+	percept_generators::pfield field;
+	field.vector.x = magnitude * cos(angle);
+	field.vector.y = 0;
+	field.vector.z = magnitude * sin(angle);
+
+	field.decay_time = 1;
+
+	field.header.frame_id = "/camera_depth_optical_frame";
+	field.header.stamp = ros::Time::now();
+
+	pfield_pub_.publish(field);
 }
 
 
@@ -245,9 +287,13 @@ void object_extractor::CloudCb_(const point_msg::ConstPtr& pc)
 
 		pcl::copyPointCloud(*vox_pc, cluster_it->indices, *cluster_pc);							//Copy new point cloud
 
-		object obj;
+		object obj;																				//Fit a shape to the data
 		obj.model_ = pcl::SACMODEL_SPHERE;
-		fitShape_(cluster_pc, obj);																			//Fit a shape to the data
+		fitShape_(cluster_pc, obj);									
+		std::ostringstream stream;
+		stream << obj.centroid_;
+
+		ROS_INFO("Centroid = \n%s", stream.str().c_str());
 
 		pointCloud::Ptr shape_pc(new pointCloud);
 
@@ -261,6 +307,7 @@ void object_extractor::CloudCb_(const point_msg::ConstPtr& pc)
 			/*out_pc->header.frame_id = pc->header.frame_id;										//Set frame id
 			out_pc->header.stamp = pc->header.stamp;*/												//Set time stamp
 			test_pub2_.publish(out_pc);																//Publish the msgs
+			publishPfieldFromCentroid(obj.centroid_, 3);											
 		}
 		else
 		{
