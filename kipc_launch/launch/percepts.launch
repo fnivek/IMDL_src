@@ -25,6 +25,7 @@
 			<param name="min_pc_height" value="$(arg min_pc_height)" type="double"/>
 			<param name="max_pc_height" value="$(arg max_pc_height)" type="double"/>
 			<param name="euclidean_cluster_tolerance" value="$(arg euclidean_cluster_tolerance)" type="double"/>
+			<param name="euclidean_min_cluster_size" value="$(arg euclidean_min_cluster_size)"/>	
 			<param name="euclidean_max_cluster_size" value="$(arg euclidean_max_cluster_size)" type="int"/>
 			<param name="voxel_size" value="$(arg voxel_size)" type="double"/>
 			<param name="kinect_pfield_strength" value="$(arg kinect_pfield_strength)" type="double"/>
