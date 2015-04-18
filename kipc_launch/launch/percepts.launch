@@ -6,7 +6,7 @@
 	<arg name="min_pc_height" default="-0.5"/>
 	<arg name="max_pc_height" default="0.05"/>
 	<arg name="euclidean_cluster_tolerance" default="0.05"/>
-	<arg name="euclidean_min_cluster_size" default="5"/>	
+	<arg name="euclidean_min_cluster_size" default="100"/>	
 	<arg name="euclidean_max_cluster_size" default="1048575"/>
 	<arg name="voxel_size" default="0.01"/>
 	<arg name="kinect_pfield_strength" default="1"/>

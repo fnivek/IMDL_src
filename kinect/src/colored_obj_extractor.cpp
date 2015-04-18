@@ -33,11 +33,8 @@ private:	// Type defs
 public:		// Structs
 	typedef struct object
 	{
-		pcl::PointIndices::Ptr inliers_;
-		pcl::ModelCoefficients coeffs_;
 		pcl::SacModel model_;
 		vector4 centroid_;
-		float fit_;								// Pecentage between 0 and 1 (inliers / total)
 	} object;
 
 private:	// Vars
@@ -47,8 +44,8 @@ private:	// Vars
 	int min_cluster_size_;		//Minimum number of points in a cluster
 	int max_cluster_size_;		//Maximum number of points in a cluster
 	double voxel_size_;
-	ros::Publisher test_pub1_;
-	ros::Publisher test_pub2_;
+	ros::Publisher sphere_pub;
+	ros::Publisher cylinder_pub;
 	ros::Subscriber raw_pc_sub_;
 	ros::Publisher pfield_pub_;
 	double kinect_pfield_strength_;
@@ -86,8 +83,8 @@ object_extractor::object_extractor() :
 
 	raw_pc_sub_ = nh.subscribe<point_msg>("/camera/depth/points", 10, &object_extractor::CloudCb_, this);
 
-	test_pub1_ = nh.advertise<point_msg>(nh.resolveName("test_pc1"), 10);
-	test_pub2_ = nh.advertise<point_msg>(nh.resolveName("test_pc2"), 10);
+	sphere_pub = nh.advertise<point_msg>(nh.resolveName("sphere_pc"), 10);
+	cylinder_pub = nh.advertise<point_msg>(nh.resolveName("cylinder_pc"), 10);
 	pfield_pub_ = nh.advertise<percept_generators::pfield>(nh.resolveName("kinect_pfield"), 10);
 
 	//Get some ros params
@@ -129,7 +126,7 @@ object_extractor::object_extractor() :
 // Threashold axis
 object_extractor::pointCloud::Ptr object_extractor::threasholdAxis_(pointCloud::Ptr pc, const std::string axis, float min, float max)
 {
-	ROS_INFO("None axis threasholded pc has %i data points", pc->width * pc->height);
+	//ROS_INFO("Pre-axis threasholded pc has %i data points", pc->width * pc->height);
 	// Get rid of points to low and points that are to high
 	pcl::IndicesPtr indices (new std::vector <int>);
 	pcl::PassThrough<point> pass;
@@ -138,20 +135,20 @@ object_extractor::pointCloud::Ptr object_extractor::threasholdAxis_(pointCloud::
 	pass.setFilterLimits (min, max);
 	pointCloud::Ptr out_pc(new pointCloud);
 	pass.filter (*out_pc);
-	ROS_INFO("Axis (%s) threasholded pc has %i data points", axis.c_str(), out_pc->width * out_pc->height);
+	//ROS_INFO("Axis (%s) threasholded pc has %i data points", axis.c_str(), out_pc->width * out_pc->height);
 	return out_pc;
 }
 
 // Down sample with voxels
 object_extractor::pointCloud::Ptr object_extractor::voxelDownSample_(pointCloud::Ptr pc, float voxel_size)
 {
-	ROS_INFO("Before %f cube voxel grid downsample point cloud has %i data points", voxel_size, pc->width * pc->height);
+	//ROS_INFO("Before %f cube voxel grid downsample point cloud has %i data points", voxel_size, pc->width * pc->height);
 	pcl::VoxelGrid<point> vox;
 	vox.setInputCloud(pc);
 	vox.setLeafSize(voxel_size, voxel_size, voxel_size);
 	pointCloud::Ptr vox_pc(new pointCloud);
 	vox.filter(*vox_pc);
-	ROS_INFO("After %f cube voxel grid downsample point cloud has %i data points", voxel_size, vox_pc->width * vox_pc->height);
+	//ROS_INFO("After %f cube voxel grid downsample point cloud has %i data points", voxel_size, vox_pc->width * vox_pc->height);
 	return vox_pc;
 }
 
@@ -178,20 +175,24 @@ std::vector<pcl::PointIndices> object_extractor::euclideanSegment_(pointCloud::P
 	//Perform extraction
 	extractor.extract(cluster_indices);
 	//pcl::extractEuclideanClusters(*pc, cluster_indices, )
-	ROS_INFO("Number of clusters is %i", (int)cluster_indices.size());
+	//ROS_INFO("Number of clusters is %i", (int)cluster_indices.size());
 	return cluster_indices;
 
 }
 
-/*void object_extractor::segmentSphere(pointCloud::Ptr pc, pcl::PointCloud<pcl::Normal>::Ptr normals, object& obj)
-{
-
-}
-*/
-
 void object_extractor::fitShape_(pointCloud::Ptr pc, object& obj)
 {
-	ROS_INFO("Starting shape extraction");
+	//ROS_INFO("Starting shape extraction");
+	int size_of_input_pc = pc->width * pc->height;
+	// Experimentally determined
+	//	All of the objects I care about are less than 1000 data points
+	if(size_of_input_pc > 1000)
+	{
+		obj.model_ = static_cast<pcl::SacModel>(0xFF);		// Set model to some undefined value
+		pcl::compute3DCentroid(*pc, obj.centroid_);
+		return;
+	}
+
 	// Estimate point normals
 	// Make kd tree
 	pcl::search::KdTree<point>::Ptr tree(new pcl::search::KdTree<point>);
@@ -214,65 +215,83 @@ void object_extractor::fitShape_(pointCloud::Ptr pc, object& obj)
 	seg.setInputCloud(pc);
 	seg.setInputNormals(normals);
 
-	// Segment data
-	obj.inliers_ = boost::shared_ptr<pcl::PointIndices>(new pcl::PointIndices());
-	seg.segment(*obj.inliers_, obj.coeffs_);
+	// Segment out sphere
+	pcl::PointIndices sphere_inliers;
+	pcl::ModelCoefficients sphere_coeffs;
+	seg.segment(sphere_inliers, sphere_coeffs);
 
-	unsigned int num_inliers = obj.inliers_->indices.size();
-	obj.fit_ = 1.0 * num_inliers / (pc->width * pc->height);
-
-	ROS_INFO("SPHERE:\nFit: %f%%\nCloud size: %i\nInliers: %i\nCoeffs: [%f, %f, %f, %f]\n", 
-				obj.fit_ * 100,
-				pc->width * pc->height,
-				num_inliers,
-				obj.coeffs_.values[0], obj.coeffs_.values[1], obj.coeffs_.values[2], obj.coeffs_.values[3]);
+	float sphere_fit = 1.0 * sphere_inliers.indices.size() / size_of_input_pc;
 
 	// Set up segmenter for cylinders
 	seg.setModelType(pcl::SACMODEL_CYLINDER);
-	seg.setAxis(Eigen::Vector3f(0,-1,0));
 
-	// Segment data
-	obj.inliers_ = boost::shared_ptr<pcl::PointIndices>(new pcl::PointIndices());
-	seg.segment(*obj.inliers_, obj.coeffs_);
+	// Segment out sphere
+	pcl::PointIndices cylinder_inliers;
+	pcl::ModelCoefficients cylinder_coeffs;
+	seg.segment(cylinder_inliers, cylinder_coeffs);
 
-	num_inliers = obj.inliers_->indices.size();
-	obj.fit_ = 1.0 * num_inliers / (pc->width * pc->height);
+	float cylinder_fit = 1.0 * cylinder_inliers.indices.size() / size_of_input_pc;
 
-	ROS_INFO("CYLINDER:\nFit: %f%%\nCloud size: %i\nInliers: %i\nCoeffs: [%f, %f, %f, %f, %f, %f, %f]\n", 
-				obj.fit_ * 100,
-				pc->width * pc->height,
-				num_inliers,
-				obj.coeffs_.values[0], obj.coeffs_.values[1], obj.coeffs_.values[2], obj.coeffs_.values[3],
-						obj.coeffs_.values[4], obj.coeffs_.values[5], obj.coeffs_.values[6]);
-
-	// Set up segmenter for Cones
-	seg.setModelType(pcl::SACMODEL_CONE);
-	seg.setAxis(Eigen::Vector3f(0,-1,0));
-	seg.setMinMaxOpeningAngle(5 * M_PI / 180, 45 * M_PI / 180);
-
-	// Segment data
-	obj.inliers_ = boost::shared_ptr<pcl::PointIndices>(new pcl::PointIndices());
-	seg.segment(*obj.inliers_, obj.coeffs_);
-
-	num_inliers = obj.inliers_->indices.size();
-	obj.fit_ = 1.0 * num_inliers / (pc->width * pc->height);
-
-	ROS_INFO("CONE:\nFit: %f%%\nCloud size: %i\nInliers: %i\nCoeffs: [%f, %f, %f, %f, %f, %f, %f]\n", 
-				obj.fit_ * 100,
-				pc->width * pc->height,
-				num_inliers,
-				obj.coeffs_.values[0], obj.coeffs_.values[1], obj.coeffs_.values[2], obj.coeffs_.values[3],
-						obj.coeffs_.values[4], obj.coeffs_.values[5], obj.coeffs_.values[6]);
-
-	// Find centroid of inliers
-	if(num_inliers != 0)
+	// Determine if sphere cylinder or neither
+	if(cylinder_fit >= 0.9)
 	{
-		pcl::compute3DCentroid(*pc, *obj.inliers_, obj.centroid_);
+		// Check the central axis of the cylinder model is on the y axis
+		// Cylinder coeffs px, py, pz, ax, ay, az, r
+		// 	with p being point on axis, a being axis vector, and r being radius
+		// Since the cylinder axis is a unit vector, doting the y_axis and cylinder axis 
+		// Should be either about 1 or about -1
+		// To avoid acos we just use a +- 5degrees pre calculated limits ()
+		Eigen::Vector3f y_axis(0, 1, 0);
+		Eigen::Vector3f cylinder_axis(cylinder_coeffs.values[3],
+						cylinder_coeffs.values[4], cylinder_coeffs.values[5]);
+		float dp = y_axis.dot(cylinder_axis);
+		if(dp > 0.9961946980917455 || dp < -0.9961946980917455)
+		{
+			pcl::compute3DCentroid(*pc, cylinder_inliers, obj.centroid_);
+			obj.model_ = pcl::SACMODEL_CYLINDER;
+			//ROS_INFO("CYLINDER:\nFit: %f%%\nCloud size: %i\nCoeffs: [%f, %f, %f, %f, %f, %f, %f]\n", 
+			//	cylinder_fit * 100,
+			//	size_of_input_pc,
+			//	cylinder_coeffs.values[0], cylinder_coeffs.values[1], cylinder_coeffs.values[2], cylinder_coeffs.values[3],
+			//		cylinder_coeffs.values[4], cylinder_coeffs.values[5], cylinder_coeffs.values[6]);
+
+			//Publish the segmented cloud
+			point_msg::Ptr out_pc(new sensor_msgs::PointCloud2);									//Create the ros msg
+			pointCloud::Ptr shape_pc(new pointCloud);
+			pcl::copyPointCloud(*pc, cylinder_inliers, *shape_pc);
+			pcl::toROSMsg(*pc, *out_pc);													//Fill the msg
+			out_pc->header.frame_id = "/camera_depth_optical_frame";
+			out_pc->header.stamp = ros::Time::now();
+			cylinder_pub.publish(out_pc);																//Publish the msgs
+			return;
+		}
+	}
+	else if(sphere_fit >= 0.9)
+	{
+		pcl::compute3DCentroid(*pc, sphere_inliers, obj.centroid_);
+		obj.model_ = pcl::SACMODEL_SPHERE;
+		//ROS_INFO("SPHERE:\nFit: %f%%\nCloud size: %i\nCoeffs: [%f, %f, %f, %f]\n", 
+		//		sphere_fit * 100,
+		//		size_of_input_pc,
+		//		sphere_coeffs.values[0], sphere_coeffs.values[1], sphere_coeffs.values[2], sphere_coeffs.values[3]);
+
+		//Publish the segmented cloud
+		point_msg::Ptr out_pc(new sensor_msgs::PointCloud2);									//Create the ros msg
+		pointCloud::Ptr shape_pc(new pointCloud);
+		pcl::copyPointCloud(*pc, sphere_inliers, *shape_pc);
+		pcl::toROSMsg(*pc, *out_pc);															//Fill the msg
+		out_pc->header.frame_id = "/camera_depth_optical_frame";
+		out_pc->header.stamp = ros::Time::now();
+		sphere_pub.publish(out_pc);																//Publish the msgs
+		return;
 	}
 	else
 	{
-		obj.centroid_ = vector4::Zero();
+		obj.model_ = static_cast<pcl::SacModel>(0xFF);		// Set model to some undefined value
+		pcl::compute3DCentroid(*pc, obj.centroid_);
+		return;
 	}
+
 }
 
 // Converts a centroid into a pfield in the direction based on the vector produced
@@ -304,30 +323,8 @@ void object_extractor::CloudCb_(const point_msg::ConstPtr& pc)
 	pointCloud::Ptr raw_pc(new pointCloud);
 	pcl::fromROSMsg(*pc, *raw_pc);
 
-	/* Debug
-	float miny = 9999999999;
-	float maxy = -9999999999;
-	for (pcl::PointCloud<point>::const_iterator it = raw_pc->begin(); it < raw_pc->end(); ++it)
-	{
-		float y = it->y;
-		if(y < miny)
-		{
-			miny = y;
-		}
-		else if(y > maxy)
-		{
-			maxy = y;
-		}
-	}
-	ROS_INFO("yE[%f, %f]", miny, maxy);
-	*/
 	// Down sampeling
 	pointCloud::Ptr height_filtered_pc = threasholdAxis_(raw_pc, "y", min_height_, max_height_);
-
-	// Debug output
-	point_msg::Ptr out_msg(new point_msg);
-	pcl::toROSMsg(*height_filtered_pc, *out_msg);
-	test_pub1_.publish(out_msg);
 
 	//VoxelGrid downsample
 	pointCloud::Ptr vox_pc = voxelDownSample_(height_filtered_pc, voxel_size_);
@@ -345,38 +342,12 @@ void object_extractor::CloudCb_(const point_msg::ConstPtr& pc)
 		pcl::copyPointCloud(*vox_pc, cluster_it->indices, *cluster_pc);							//Copy new point cloud
 
 		object obj;																				//Fit a shape to the data
-		obj.model_ = pcl::SACMODEL_SPHERE;
 		fitShape_(cluster_pc, obj);									
-		std::ostringstream stream;
-		stream << obj.centroid_;
 
-		//ROS_INFO("Centroid = \n%s", stream.str().c_str());
-
-		pointCloud::Ptr shape_pc(new pointCloud);
-
-		if(obj.inliers_->indices.size() != 0)
+		if(obj.model_ == pcl::SACMODEL_CYLINDER) //|| obj.model_ == pcl::SACMODEL_SPHERE)
 		{
-			//Publish the segmented cloud
-			point_msg::Ptr out_pc(new sensor_msgs::PointCloud2);									//Create the ros msg
-			pcl::copyPointCloud(*cluster_pc, *obj.inliers_, *shape_pc);
-			pcl::toROSMsg(*cluster_pc, *out_pc);													//Fill the msg
-			out_pc->header = pc->header;															//Change the header
-			/*out_pc->header.frame_id = pc->header.frame_id;										//Set frame id
-			out_pc->header.stamp = pc->header.stamp;*/												//Set time stamp
-			test_pub2_.publish(out_pc);																//Publish the msgs
-			publishPfieldFromCentroid(obj.centroid_, kinect_pfield_strength_, kinect_pfield_decay_time_);		
-			/*ROS_INFO("\nFit: %f%%\nCloud size: %i\nInliers: %i\nCentroid: [%f, %f, %f]\nCoeffs: [%f, %f, %f, %f]\n", 
-				obj.fit_ * 100,
-				cluster_pc->width * cluster_pc->height,
-				obj.inliers_->indices.size(),
-				obj.centroid_(0), obj.centroid_(1), obj.centroid_(2),
-				obj.coeffs_.values[0], obj.coeffs_.values[1], obj.coeffs_.values[2], obj.coeffs_.values[3]);		*/							
+			publishPfieldFromCentroid(obj.centroid_, kinect_pfield_strength_, kinect_pfield_decay_time_);							
 		}
-		else
-		{
-			ROS_INFO("Couldn't fit shape");
-		}
-
 		
 	}
 
