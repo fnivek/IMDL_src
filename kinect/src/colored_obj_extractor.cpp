@@ -226,7 +226,8 @@ void object_extractor::publishPfieldFromCentroid(vector4 centroid, float magnitu
 	// TODO: Learn linear algebra so you can use Eigen how its suppose to be used...
 
 	// Find angle
-	float angle = atan2(centroid(0), centroid(2));
+	//					rize(Z)	   , Run(X)
+	float angle = atan2(centroid(2), centroid(0));
 	percept_generators::pfield field;
 	field.vector.x = magnitude * cos(angle);
 	field.vector.y = 0;
@@ -307,7 +308,7 @@ void object_extractor::CloudCb_(const point_msg::ConstPtr& pc)
 			/*out_pc->header.frame_id = pc->header.frame_id;										//Set frame id
 			out_pc->header.stamp = pc->header.stamp;*/												//Set time stamp
 			test_pub2_.publish(out_pc);																//Publish the msgs
-			publishPfieldFromCentroid(obj.centroid_, 3);											
+			publishPfieldFromCentroid(obj.centroid_, 0.5);											
 		}
 		else
 		{

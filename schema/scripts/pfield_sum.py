@@ -5,15 +5,21 @@
 
 import rospy
 from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Vector3Stamped
 from percept_generators.msg import pfield
+import tf
 
 class node:
 	def __init__(self):
 		self.pfields = []
 		self.motor_pub = rospy.Publisher("motor_cmd", Twist, queue_size = 10)
+
 		rospy.Subscriber("/percepts/sonar_pfield", pfield, self.newPfieldCb)
+		rospy.Subscriber("/percepts/kinect_pfield", pfield, self.newPfieldCb)
 
 		rospy.Timer(rospy.Duration(0.05), self.updateCb)
+
+		self.listener = tf.TransformListener()
 
 	def updateCb(self, event):
 		now = event.current_real.to_sec()
@@ -24,10 +30,25 @@ class node:
 		# Vector Sum 
 		vector_sum = [0, 0]
 		for p in self.pfields:
-			vector_sum[0] = vector_sum[0] + p.vector.x
-			vector_sum[1] = vector_sum[1] + p.vector.y
+			vec_in = Vector3Stamped()
+			vec_out = Vector3Stamped()
+			vec_in.header = p.header
+			vec_in.vector = p.vector
 
-		print vector_sum
+			print 'Vec in:\n',p
+			# Convert to base link
+			try:
+				vec_out = self.listener.transformVector3('/base_link', vec_in)
+			except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
+				rospy.logerr("Can\'t sum vector with frame {0} because tf error: {1}".format(p.header.frame_id, e))
+				continue			
+
+			print 'Vec out:\n', vec_out
+			# Sum
+			vector_sum[0] = vector_sum[0] + vec_out.vector.x
+			vector_sum[1] = vector_sum[1] + vec_out.vector.y
+
+		print 'Vector sum', vector_sum
 
 		# Publish motor cmd
 		#	Any Y component gets maped to rotation
@@ -38,6 +59,7 @@ class node:
 		self.motor_pub.publish(msg)
 
 	def newPfieldCb(self, field):
+		print 'newField'
 		self.pfields.append(field)
 
 

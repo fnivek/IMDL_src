@@ -3,7 +3,10 @@
 	<!-- Height is inverted, towards the sky is negative, towards the ground is positive -->
 	<arg name="min_pc_height" default="-0.5"/>
 	<arg name="max_pc_height" default="0.05"/>	
+	<arg name="pi/2" value="1.5707963267948966" />
 
+	<node pkg="tf" type="static_transform_publisher" name="kinect_to_base_link"
+	     args="0 0 0.065 0 0 0 base_link camera_link 100" />  
 
 	<group ns="percepts">
 		<node pkg="percept_generators" type="encoder_to_vels.py" name="encoder_to_vels"/>
