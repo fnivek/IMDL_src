@@ -1,9 +1,35 @@
 <launch>
+	<!-- Hardware interface -->
 	<arg name="use_kinect" default="1"/>
+	<arg name="disable_motors" default="0"/>
 
-	<include file="$(find kipc_launch)/launch/percepts.launch"/>
-	<include file="$(find kipc_launch)/launch/hardware_interface.launch">
-		<arg name="use_kinect" value="$(arg use_kinect)"/>
+	<!-- Percept generators -->
+	<arg name="min_pc_height" default="-0.5"/>
+	<arg name="max_pc_height" default="0.05"/>
+	<arg name="euclidean_cluster_tolerance" default="0.05"/>
+	<arg name="euclidean_min_cluster_size" default="5"/>	
+	<arg name="euclidean_max_cluster_size" default="1048575"/>
+	<arg name="voxel_size" default="0.01"/>
+	<arg name="kinect_pfield_strength" default="1"/>
+	<arg name="kinect_pfield_decay_time" default="2"/>
+
+	<include if="$(arg use_kinect)" file="$(find openni_launch)/launch/openni.launch"/>
+
+	<include file="$(find kipc_launch)/launch/percepts.launch">
+		<arg name="min_pc_height" value="$(arg min_pc_height)"/>
+		<arg name="max_pc_height" value="$(arg max_pc_height)"/>
+		<arg name="euclidean_cluster_tolerance" value="$(arg euclidean_cluster_tolerance)"/>
+		<arg name="euclidean_min_cluster_size" value="$(arg euclidean_min_cluster_size)"/>	
+		<arg name="euclidean_max_cluster_size" value="$(arg euclidean_max_cluster_size)"/>
+		<arg name="voxel_size" value="$(arg voxel_size)"/>
+		<arg name="kinect_pfield_strength" value="$(arg kinect_pfield_strength)"/>
+		<arg name="kinect_pfield_decay_time" value="$(arg kinect_pfield_decay_time)"/>
 	</include>
+
+	<include file="$(find kipc_launch)/launch/hardware_interface.launch">
+		<arg name="disable_motors" value="$(arg disable_motors)"/>
+	</include>
+
 	<include file="$(find kipc_launch)/launch/schema.launch"/>
+
 </launch>

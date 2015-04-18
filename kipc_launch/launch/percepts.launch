@@ -2,7 +2,14 @@
 	<!-- args -->
 	<!-- Height is inverted, towards the sky is negative, towards the ground is positive -->
 	<arg name="min_pc_height" default="-0.5"/>
-	<arg name="max_pc_height" default="0.05"/>	
+	<arg name="max_pc_height" default="0.05"/>
+	<arg name="euclidean_cluster_tolerance" default="0.05"/>
+	<arg name="euclidean_min_cluster_size" default="5"/>	
+	<arg name="euclidean_max_cluster_size" default="1048575"/>
+	<arg name="voxel_size" default="0.01"/>
+	<arg name="kinect_pfield_strength" default="1"/>
+	<arg name="kinect_pfield_decay_time" default="2"/>
+
 	<arg name="pi/2" value="1.5707963267948966" />
 
 	<node pkg="tf" type="static_transform_publisher" name="kinect_to_base_link"
@@ -15,7 +22,13 @@
 		<!-- TODO="Add kinect Percept" -->
 		<node pkg="kinect" type="colored_obj_extractor" name="object_extractor">
 			<param name="min_pc_height" value="$(arg min_pc_height)" type="double"/>
-			<param name= "max_pc_height" value="$(arg max_pc_height)" type="double"/>
+			<param name="max_pc_height" value="$(arg max_pc_height)" type="double"/>
+			<param name="euclidean_cluster_tolerance" value="$(arg euclidean_cluster_tolerance)" type="double"/>
+			<param name="euclidean_max_cluster_size" value="$(arg euclidean_max_cluster_size)" type="int"/>
+			<param name="voxel_size" value="$(arg voxel_size)" type="double"/>
+			<param name="kinect_pfield_strength" value="$(arg kinect_pfield_strength)" type="double"/>
+			<param name="kinect_pfield_decay_time" value="$(arg kinect_pfield_decay_time)" type="double"/>
+
 		</node>
 	</group>
 
