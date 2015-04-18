@@ -34,7 +34,7 @@ public:		// Structs
 	typedef struct object
 	{
 		pcl::PointIndices::Ptr inliers_;
-		pcl::ModelCoefficients::Ptr coeffs_;
+		pcl::ModelCoefficients coeffs_;
 		pcl::SacModel model_;
 		vector4 centroid_;
 		float fit_;								// Pecentage between 0 and 1 (inliers / total)
@@ -183,6 +183,12 @@ std::vector<pcl::PointIndices> object_extractor::euclideanSegment_(pointCloud::P
 
 }
 
+/*void object_extractor::segmentSphere(pointCloud::Ptr pc, pcl::PointCloud<pcl::Normal>::Ptr normals, object& obj)
+{
+
+}
+*/
+
 void object_extractor::fitShape_(pointCloud::Ptr pc, object& obj)
 {
 	ROS_INFO("Starting shape extraction");
@@ -196,26 +202,67 @@ void object_extractor::fitShape_(pointCloud::Ptr pc, object& obj)
 	pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
 	ne.compute(*normals);
 
-	// Set up segmenter
+	// Set up segmenter for spheres
 	pcl::SACSegmentationFromNormals<point, pcl::Normal> seg;
 	seg.setOptimizeCoefficients(true);
-	seg.setModelType(obj.model_);
+	seg.setModelType(pcl::SACMODEL_SPHERE);
 	seg.setMethodType(pcl::SAC_RANSAC);
 	seg.setNormalDistanceWeight(0.1);
 	seg.setMaxIterations(50);
 	seg.setDistanceThreshold(0.05);
-	seg.setRadiusLimits(0, 1);
+	seg.setRadiusLimits(0.05, 0.20);
 	seg.setInputCloud(pc);
 	seg.setInputNormals(normals);
 
 	// Segment data
-	obj.coeffs_ = boost::shared_ptr<pcl::ModelCoefficients>(new pcl::ModelCoefficients());
 	obj.inliers_ = boost::shared_ptr<pcl::PointIndices>(new pcl::PointIndices());
-	seg.segment(*obj.inliers_, *obj.coeffs_);
+	seg.segment(*obj.inliers_, obj.coeffs_);
 
 	unsigned int num_inliers = obj.inliers_->indices.size();
-
 	obj.fit_ = 1.0 * num_inliers / (pc->width * pc->height);
+
+	ROS_INFO("SPHERE:\nFit: %f%%\nCloud size: %i\nInliers: %i\nCoeffs: [%f, %f, %f, %f]\n", 
+				obj.fit_ * 100,
+				pc->width * pc->height,
+				num_inliers,
+				obj.coeffs_.values[0], obj.coeffs_.values[1], obj.coeffs_.values[2], obj.coeffs_.values[3]);
+
+	// Set up segmenter for cylinders
+	seg.setModelType(pcl::SACMODEL_CYLINDER);
+	seg.setAxis(Eigen::Vector3f(0,-1,0));
+
+	// Segment data
+	obj.inliers_ = boost::shared_ptr<pcl::PointIndices>(new pcl::PointIndices());
+	seg.segment(*obj.inliers_, obj.coeffs_);
+
+	num_inliers = obj.inliers_->indices.size();
+	obj.fit_ = 1.0 * num_inliers / (pc->width * pc->height);
+
+	ROS_INFO("CYLINDER:\nFit: %f%%\nCloud size: %i\nInliers: %i\nCoeffs: [%f, %f, %f, %f, %f, %f, %f]\n", 
+				obj.fit_ * 100,
+				pc->width * pc->height,
+				num_inliers,
+				obj.coeffs_.values[0], obj.coeffs_.values[1], obj.coeffs_.values[2], obj.coeffs_.values[3],
+						obj.coeffs_.values[4], obj.coeffs_.values[5], obj.coeffs_.values[6]);
+
+	// Set up segmenter for Cones
+	seg.setModelType(pcl::SACMODEL_CONE);
+	seg.setAxis(Eigen::Vector3f(0,-1,0));
+	seg.setMinMaxOpeningAngle(5 * M_PI / 180, 45 * M_PI / 180);
+
+	// Segment data
+	obj.inliers_ = boost::shared_ptr<pcl::PointIndices>(new pcl::PointIndices());
+	seg.segment(*obj.inliers_, obj.coeffs_);
+
+	num_inliers = obj.inliers_->indices.size();
+	obj.fit_ = 1.0 * num_inliers / (pc->width * pc->height);
+
+	ROS_INFO("CONE:\nFit: %f%%\nCloud size: %i\nInliers: %i\nCoeffs: [%f, %f, %f, %f, %f, %f, %f]\n", 
+				obj.fit_ * 100,
+				pc->width * pc->height,
+				num_inliers,
+				obj.coeffs_.values[0], obj.coeffs_.values[1], obj.coeffs_.values[2], obj.coeffs_.values[3],
+						obj.coeffs_.values[4], obj.coeffs_.values[5], obj.coeffs_.values[6]);
 
 	// Find centroid of inliers
 	if(num_inliers != 0)
@@ -226,8 +273,6 @@ void object_extractor::fitShape_(pointCloud::Ptr pc, object& obj)
 	{
 		obj.centroid_ = vector4::Zero();
 	}
-
-	ROS_INFO("%f%% fit", obj.fit_ * 100);
 }
 
 // Converts a centroid into a pfield in the direction based on the vector produced
@@ -294,8 +339,8 @@ void object_extractor::CloudCb_(const point_msg::ConstPtr& pc)
 	for(std::vector<pcl::PointIndices>::const_iterator cluster_it = cluster_indices.begin();	//Iterate through clusters
 			cluster_it != cluster_indices.end(); ++cluster_it)
 	{
-
 		pointCloud::Ptr cluster_pc(new pointCloud);												//Make a new point cloud
+		//ROS_INFO("This euclidean segment has %i data points", cluster_pc->width * cluster_pc->height);
 
 		pcl::copyPointCloud(*vox_pc, cluster_it->indices, *cluster_pc);							//Copy new point cloud
 
@@ -305,7 +350,7 @@ void object_extractor::CloudCb_(const point_msg::ConstPtr& pc)
 		std::ostringstream stream;
 		stream << obj.centroid_;
 
-		ROS_INFO("Centroid = \n%s", stream.str().c_str());
+		//ROS_INFO("Centroid = \n%s", stream.str().c_str());
 
 		pointCloud::Ptr shape_pc(new pointCloud);
 
@@ -319,14 +364,20 @@ void object_extractor::CloudCb_(const point_msg::ConstPtr& pc)
 			/*out_pc->header.frame_id = pc->header.frame_id;										//Set frame id
 			out_pc->header.stamp = pc->header.stamp;*/												//Set time stamp
 			test_pub2_.publish(out_pc);																//Publish the msgs
-			publishPfieldFromCentroid(obj.centroid_, kinect_pfield_strength_, kinect_pfield_decay_time_);											
+			publishPfieldFromCentroid(obj.centroid_, kinect_pfield_strength_, kinect_pfield_decay_time_);		
+			/*ROS_INFO("\nFit: %f%%\nCloud size: %i\nInliers: %i\nCentroid: [%f, %f, %f]\nCoeffs: [%f, %f, %f, %f]\n", 
+				obj.fit_ * 100,
+				cluster_pc->width * cluster_pc->height,
+				obj.inliers_->indices.size(),
+				obj.centroid_(0), obj.centroid_(1), obj.centroid_(2),
+				obj.coeffs_.values[0], obj.coeffs_.values[1], obj.coeffs_.values[2], obj.coeffs_.values[3]);		*/							
 		}
 		else
 		{
 			ROS_INFO("Couldn't fit shape");
 		}
 
-		ROS_INFO("This euclidean segment has %i data points", cluster_pc->width * cluster_pc->height);
+		
 	}
 
 }
