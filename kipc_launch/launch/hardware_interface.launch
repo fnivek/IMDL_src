@@ -1,10 +1,9 @@
 <launch>
 	<!-- Args -->
-	<arg name="use_kinect" default="1"/>
+	<arg name="disable_motors" default="0"/>
 
 	<group ns="hardware_interface">
 		<node pkg="comms" type="hardware_interface.py" name="hardware_interface"/>
-		<node pkg="motor_controler" type="primative_driver.py" name="primative_driver"/>
-		<node if="$(arg use_kinect)" pkg="kinect" type="kinect_driver" name="kinect_driver"/>
+		<node unless="$(arg disable_motors)" pkg="motor_controler" type="primative_driver.py" name="primative_driver"/>
 	</group>
 </launch>
