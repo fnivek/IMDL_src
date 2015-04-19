@@ -2,6 +2,7 @@
 import rospy
 from std_msgs.msg import Int32MultiArray
 from percept_generators.msg import pfield
+from sensor_msgs.msg import Range
 import numpy
 import math
 
@@ -10,6 +11,11 @@ from collections import deque
 sizeOfDeques = 3
 sonar_data = [deque() for x in range(4)]
 pfield_pub = rospy.Publisher("sonar_pfield", pfield, queue_size = 10)
+range_pub = rospy.Publisher("sonar_range", Range, queue_size = 10)
+range_tf_frames = ('front_sonar_link', 'back_sonar_link', 'front_right_sonar_link', 'front_left_sonar_link')
+
+def ticksToMeters(ticks):
+	return 0.00000272602 * ticks + -0.08904109589
 
 def avg(seq):
 	return reduce(lambda x, y: x + y, seq) / len(seq)
@@ -43,6 +49,19 @@ def sonar_data_cb(msg):
 	# Get avg
 	sonar_avg = map(avg, sonar_data)
 	sonar_avg = map(scaleSonarData, sonar_avg)
+
+	# Publish avg data to a Range msg to view in Rviz
+	range_msg = [Range() for x in range(4)]
+	now = rospy.Time.now()
+	for i, r in enumerate(range_msg):
+		r.header.stamp = now
+		r.header.frame_id = range_tf_frames[i]
+		r.radiation_type = Range.ULTRASOUND
+		r.field_of_view = 15 * math.pi / 180
+		r.min_range = 0.02
+		r.max_range = 4
+		r.range = ticksToMeters(sonar_avg[i])
+		range_pub.publish(r)
 
 	# Generate potential fields
 		# Sonars are orderd front, back, front right, front left

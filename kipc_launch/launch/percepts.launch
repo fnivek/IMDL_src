@@ -13,10 +13,21 @@
 	<arg name="kinect_pfield_decay_time" default="2"/>
 	<arg name="cylinder_axis_tolerance" default="10"/>
 
-	<arg name="pi/2" value="1.5707963267948966" />
-
+	<!-- Static transforms -->
 	<node pkg="tf" type="static_transform_publisher" name="kinect_to_base_link"
 	     args="0 0 0.065 0 0 0 base_link camera_link 100" />  
+
+	<node pkg="tf" type="static_transform_publisher" name="front_sonar_to_base_link"
+	     args="0.1524 0 0 0 0 0 base_link front_sonar_link 100" /> 
+
+	<node pkg="tf" type="static_transform_publisher" name="back_sonar_to_base_link"
+	     args="-0.1524 0 0 3.14159265359 0 0 base_link back_sonar_link 100" /> 
+
+	<node pkg="tf" type="static_transform_publisher" name="fron_right_sonar_to_base_link"
+	     args="0.0762 -0.13198227153 0 -0.52359877559 0 0 base_link front_right_sonar_link 100" /> 
+
+	<node pkg="tf" type="static_transform_publisher" name="fron_left_sonar_to_base_link"
+	     args="0.0762 0.13198227153 0 0.52359877559 0 0 base_link front_left_sonar_link 100" /> 
 
 	<group ns="percepts">
 		<node pkg="percept_generators" type="encoder_to_vels.py" name="encoder_to_vels"/>
