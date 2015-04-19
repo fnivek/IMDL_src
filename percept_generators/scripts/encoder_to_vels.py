@@ -46,7 +46,7 @@ def encoder_cb(msg):
 		else:
 			diff[index] = last_abs_encoder[index] - data[index]
 
-	print 'Diff: %f, %f' % (diff[0], diff[1])
+	#print 'Diff: %f, %f' % (diff[0], diff[1])
 
 	# Reset last_abs_encoder
 	last_abs_encoder = data
@@ -63,12 +63,12 @@ def encoder_cb(msg):
 			encoder_diff_values[index].append(encoder_tick)
 			index += 1
 
-	print 'Encoder diff values:', encoder_diff_values
+	#print 'Encoder diff values:', encoder_diff_values
 
 	# Get avg
 	encoder_avg = map(avg, encoder_diff_values)
 
-	print 'Encoder avg values:', encoder_avg
+	#print 'Encoder avg values:', encoder_avg
 
 	# Convert encoder diff to angular velocity and publish
 	#	avg_diff * (rads/ticks) / time_step
