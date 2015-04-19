@@ -16,6 +16,10 @@
 	<arg name="kinect_pfield_decay_time" default="2"/>
 	<arg name="cylinder_axis_tolerance" default="10"/>
 
+	<!-- Robot description -->
+	<param name="/wheel_base" value="0.3048" type="double"/>
+	<param name="/wheel_radius" value="0.06" type="double"/>
+
 	<include if="$(arg use_kinect)" file="$(find openni_launch)/launch/openni.launch"/>
 
 	<include file="$(find kipc_launch)/launch/percepts.launch">

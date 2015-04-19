@@ -24,6 +24,7 @@ class node:
 		self.ki = rospy.get_param('gain_i', 0.05)	# Integral scares me...
 
 		self.wheel_base = rospy.get_param('/wheel_base', 0.3048) # 0.3048 m = 12 in
+		self.wheel_radius = rospy.get_param('/wheel_radius' 0.06)
 
 		self.ramp_coef = 1  # Duty / s
 		self.current_duty = [0, 0]
@@ -32,20 +33,35 @@ class node:
 		self.last_time = rospy.get_time()
 
 	#Callback for motor command
-	#		
+	# 
+	# Variables:
+	#	wr := right wheel angular velocity (rad/s)
+	#	wl := left wheel angular velocity (rad/s)
+	#	r_wheel := radius of the wheel (m)
+	#	Vr := velocity of right wheel along the ground (m/s)
+	#	Vl := velocity of left wheel along the ground (m/s)
+	#	Vx := Linear velocity of robot (m/s)
+	#	w := angular velocity of robot about instantaneous center of curvature (ICC) (rad/s)
+	#	L := length between the wheels (m)
+	#
 	# Equation:
+	#	Vr = wr * r_wheel
+	#	Vl = wl * r_wheel
 	#	Vx = (Vr + Vl) / 2
 	#	w = (Vr - Vl) / L
 	# ------------------------
 	#	Vr = Vx + L * w / 2
 	#	Vl = Vx - L * w / 2
+	# ------------------------
+	#	wr = (1 / r_wheel) * (Vx + L * w / 2)
+	# 	wl = (1 / r_wheel) * (Vx - L * w / 2)
 	#
 	def motorCmdCb(self, twist):
 		Vx = twist.linear.x
 		w = twist.angular.z
 
-		self.desired_left_velocity = Vx - self.wheel_base * w / 2
-		self.desired_right_velocity = Vx + self.wheel_base * w / 2
+		self.desired_left_velocity = (Vx - self.wheel_base * w / 2) / self.wheel_radius
+		self.desired_right_velocity = (Vx + self.wheel_base * w / 2) / self.wheel_radius
 
 		#print 'Desired_Vl: %f, Desired_Vr: %f' % (self.desired_left_velocity, self.desired_right_velocity)
 
