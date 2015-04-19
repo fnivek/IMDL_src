@@ -13,6 +13,7 @@ last_diff_encoder = [0, 0]
 last_abs_encoder = [0, 0]
 sizeOfDeques = 3
 encoder_diff_values = [deque() for x in range(2)]
+first = True
 
 last_time = 0
 rads_per_tick = 2 * 3.14159265359 / 3730
@@ -25,6 +26,7 @@ def encoder_cb(msg):
 	global last_abs_encoder
 	global last_time
 	global encoder_diff_values
+	global first
 
 	# Timer stuff
 	now = rospy.get_time()
@@ -33,11 +35,16 @@ def encoder_cb(msg):
 	if time_step < 0.001:
 		return
 	last_time = now
+	
+	data = msg.data
 
+	if first is True:
+		# Get initial last_abs_encoder
+		last_abs_encoder = data
+		first = False
 	
 	# get diff
 	diff = [0,0]
-	data = msg.data
 	for index in range(2):
 		if(last_abs_encoder[index] > 0xF000 and data[index] < 1000):
 			diff[index] = (0xFFFF - last_abs_encoder[index]) + data[index]
