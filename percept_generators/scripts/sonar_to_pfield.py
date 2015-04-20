@@ -3,10 +3,16 @@ import rospy
 from std_msgs.msg import Int32MultiArray
 from percept_generators.msg import pfield
 from sensor_msgs.msg import Range
-import numpy
+import numpy as np
 import math
 
 from collections import deque
+
+"""
+	This node produces potential fields from sonar data
+		The x component of the pfield is converted into a linear x motion while 
+		the y component is converted into a torque 
+"""
 
 class node:
 	range_tf_frames = ('front_sonar_link', 'back_sonar_link', 'front_right_sonar_link', 'front_left_sonar_link')
@@ -20,20 +26,51 @@ class node:
 		self.pfield_pub = rospy.Publisher("sonar_pfield", pfield, queue_size = 10)
 		self.range_pub = rospy.Publisher("sonar_range", Range, queue_size = 10)
 
+		# Keep in mind max ticks produces the min pfield and min ticks produces max pfield
+		self.max_ticks = rospy.get_param('max_ticks', 500000)
+		self.mid_ticks = rospy.get_param('mid_ticks', 250000)
+		self.min_ticks = rospy.get_param('min_ticks', 150000)
+		self.max_pfield = rospy.get_param('max_pfield', 10)
+		self.mid_pfield = rospy.get_param('mid_pfield', 1)
+
+		# Generate coeficients for hyperbolic interpolation
+		#	To generate the equation we set min ticks to be the vertex
+		#	and the other two points as points to be passed through
+		A = np.matrix([[2.0 * self.max_ticks, 			1.0, 						0.0],		# Vertex constraint
+					   [(1.0 * self.mid_ticks) ** 2,	(1.0 * self.mid_ticks),		1.0],		# Mid point constraint
+					   [(1.0 * self.min_ticks) ** 2,	(1.0 * self.min_ticks),		1.0]]		# Endpoint constraint
+			)
+		print 'A:\n', A, '\n'
+		A_inv = A.getI()	# Invert A
+		print 'A_inv:\n', A_inv, '\n'
+		Y = np.matrix( [[0.0], [self.mid_pfield], [self.max_pfield]])			# Y column vector
+		print 'Y:\n', Y, '\n'
+		self.parabolic_coeffs = A_inv * Y
+		print 'Coeffs:\n', self.parabolic_coeffs, '\n'
+
+
 	def ticksToMeters(self, ticks):
 		return 0.00000272602 * ticks + -0.08904109589
 
 	def avg(self, seq):
 		return reduce(lambda x, y: x + y, seq) / len(seq)
 
-	def scaleSonarData(self, sonar):
-		if sonar <= 40000:
+	def scaleSonarData(self, ticks):
+		if ticks <= 40000:
 			return 40001
-		elif sonar >= 1500000:
+		elif ticks >= 1500000:
 			return 1500000
 		else:
-			return sonar
+			return ticks
 
+	def generatePfieldMagnitude(self, ticks):
+		if ticks > self.max_ticks:
+			return 0
+		elif ticks < self.min_ticks:
+			return self.max_pfield
+		else:
+			return (np.matrix([ticks ** 2, ticks, 1]) * self.parabolic_coeffs).item(0)
+			
 
 	def sonar_data_cb(self, msg):
 		data = msg.data
@@ -71,13 +108,16 @@ class node:
 			# 					0*,    180*, 30*,		  -30*
 			# An inverse tangent function is used to calculate a potential field
 			# K * cot((pi/2920000)*(x - 40000))
-		scalar_pfields = map( lambda avg: 0.7 / math.tan(1.07588789506499e-6 * avg + 0.0430355158025),
-								sonar_avg)
-		#scalar_pfields = map( lambda avg: .1 * ((-1/146000) * (avg - 40000) + 10), sonar_avg)
+		pfield_mags = map(self.generatePfieldMagnitude, sonar_avg)
+		print pfield_mags
+
+		#pfield_mags = map( lambda avg: 0.7 / math.tan(1.07588789506499e-6 * avg + 0.0430355158025),
+		#						sonar_avg)
+		#pfield_mags = map( lambda avg: .1 * ((-1/146000) * (avg - 40000) + 10), sonar_avg)
 
 		pfield_msg = pfield()
-		pfield_msg.vector.x = scalar_pfields[0] * -1 + scalar_pfields[1] + scalar_pfields[2] * -math.cos(math.pi/6) + scalar_pfields[3] * -math.cos(-math.pi/6)
-		pfield_msg.vector.y = 											   scalar_pfields[2] * -math.sin(math.pi/6) + scalar_pfields[3] * -math.sin(-math.pi/6)
+		pfield_msg.vector.x = pfield_mags[0] * -1 + pfield_mags[1] + pfield_mags[2] * -math.cos(math.pi/6) + pfield_mags[3] * -math.cos(-math.pi/6)
+		pfield_msg.vector.y = 										 pfield_mags[2] * -math.sin(math.pi/6) + pfield_mags[3] * -math.sin(-math.pi/6)
 		pfield_msg.vector.z = 0
 		pfield_msg.header.stamp = rospy.Time.now()
 		pfield_msg.header.frame_id = "/base_link"

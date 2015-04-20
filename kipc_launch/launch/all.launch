@@ -14,7 +14,12 @@
 	<arg name="voxel_size" default="0.01"/>
 	<arg name="kinect_pfield_strength" default="1.5"/>
 	<arg name="kinect_pfield_decay_time" default="2"/>
-	<arg name="cylinder_axis_tolerance" default="10"/>
+	<arg name="cylinder_axis_tolerance" default="10"/>	
+	<arg name="max_ticks" default="500000"/>
+	<arg name="mid_ticks" default="250000"/>
+	<arg name="min_ticks" default="150000"/>
+	<arg name="max_pfield" default="10"/>
+	<arg name="mid_pfield" default="1"/>
 
 	<!-- Robot description -->
 	<param name="/wheel_base" value="0.3048" type="double"/>
@@ -34,6 +39,11 @@
 		<arg name="kinect_pfield_strength" value="$(arg kinect_pfield_strength)"/>
 		<arg name="kinect_pfield_decay_time" value="$(arg kinect_pfield_decay_time)"/>
 		<arg name="cylinder_axis_tolerance" value="$(arg cylinder_axis_tolerance)"/>
+		<arg name="max_ticks" value="$(arg max_ticks)"/>
+		<arg name="mid_ticks" value="$(arg mid_ticks)"/>
+		<arg name="min_ticks" value="$(arg min_ticks)"/>
+		<arg name="max_pfield" value="$(arg max_pfield)"/>
+		<arg name="mid_pfield" value="$(arg mid_pfield)"/>
 	</include>
 
 	<include file="$(find kipc_launch)/launch/hardware_interface.launch">
