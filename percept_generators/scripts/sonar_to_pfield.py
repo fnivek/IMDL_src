@@ -27,26 +27,19 @@ class node:
 		self.range_pub = rospy.Publisher("sonar_range", Range, queue_size = 10)
 
 		# Keep in mind max ticks produces the min pfield and min ticks produces max pfield
-		self.max_ticks = rospy.get_param('max_ticks', 500000)
-		self.mid_ticks = rospy.get_param('mid_ticks', 250000)
-		self.min_ticks = rospy.get_param('min_ticks', 150000)
-		self.max_pfield = rospy.get_param('max_pfield', 10)
-		self.mid_pfield = rospy.get_param('mid_pfield', 1)
+		self.max_ticks = rospy.get_param('~max_ticks', 500000)
+		self.mid_ticks = rospy.get_param('~mid_ticks', 120000)
+		self.min_ticks = rospy.get_param('~min_ticks', 100000)
+		self.max_pfield = rospy.get_param('~max_pfield', 20)
+		self.mid_pfield = rospy.get_param('~mid_pfield', 3)
 
-		# Generate coeficients for hyperbolic interpolation
-		#	To generate the equation we set min ticks to be the vertex
-		#	and the other two points as points to be passed through
-		A = np.matrix([[2.0 * self.max_ticks, 			1.0, 						0.0],		# Vertex constraint
-					   [(1.0 * self.mid_ticks) ** 2,	(1.0 * self.mid_ticks),		1.0],		# Mid point constraint
-					   [(1.0 * self.min_ticks) ** 2,	(1.0 * self.min_ticks),		1.0]]		# Endpoint constraint
-			)
-		print 'A:\n', A, '\n'
-		A_inv = A.getI()	# Invert A
-		print 'A_inv:\n', A_inv, '\n'
-		Y = np.matrix( [[0.0], [self.mid_pfield], [self.max_pfield]])			# Y column vector
-		print 'Y:\n', Y, '\n'
-		self.parabolic_coeffs = A_inv * Y
-		print 'Coeffs:\n', self.parabolic_coeffs, '\n'
+		# Piece wise linear approximation of exponintial function
+		m1 = 1.0 * self.mid_pfield / (self.mid_ticks - self.max_ticks)
+		b1 = -1.0 * m1 * self.max_ticks
+		self.close_line = np.matrix([m1, b1])
+		m2 = 1.0 * (self.mid_pfield - self.max_pfield) / (self.mid_ticks - self.min_ticks)
+		b2 = self.max_pfield - (1.0 * m2 * self.min_ticks) 
+		self.far_line = np.matrix([m2, b2])
 
 
 	def ticksToMeters(self, ticks):
@@ -66,10 +59,12 @@ class node:
 	def generatePfieldMagnitude(self, ticks):
 		if ticks > self.max_ticks:
 			return 0
-		elif ticks < self.min_ticks:
-			return self.max_pfield
+		elif ticks > self.mid_ticks:
+			return (self.close_line * np.matrix([[ticks], [1]])).item(0)
+		elif ticks > self.min_ticks:
+			return (self.far_line * np.matrix([[ticks], [1]])).item(0)
 		else:
-			return (np.matrix([ticks ** 2, ticks, 1]) * self.parabolic_coeffs).item(0)
+			return self.max_pfield
 			
 
 	def sonar_data_cb(self, msg):
