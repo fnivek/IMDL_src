@@ -1,9 +1,28 @@
 <launch>
+	<arg name="use_sonar" default="1"/>
+	<arg name="max_ticks" default="500000"/>
+	<arg name="mid_ticks" default="120000"/>
+	<arg name="min_ticks" default="100000"/>
+	<arg name="max_pfield" default="20"/>
+	<arg name="mid_pfield" default="3"/>
+	
 	<group ns="schema">
 		<node pkg="schema" type="pfield_sum.py" name="pfield_sum"/>
+
 		<node pkg="schema" type="spin.py" name="spin"/>
+
 		<node pkg="schema" type="go_to_closses_sphere.py" name="go_to_closses_sphere"/>
+
 		<node pkg="schema" type="go_to_start_gate.py" name="go_to_start_gate"/>
+
 		<node pkg="schema" type="wander.py" name="wander"/>
+
+		<node if="$(arg use_sonar)" pkg="schema" type="avoid.py" name="avoid">
+			<param name="max_ticks" value="$(arg max_ticks)" type="int"/>
+			<param name="mid_ticks" value="$(arg mid_ticks)" type="int"/>
+			<param name="min_ticks" value="$(arg min_ticks)" type="int"/>
+			<param name="max_pfield" value="$(arg max_pfield)" type="double"/>
+			<param name="mid_pfield" value="$(arg mid_pfield)" type="double"/>
+		</node>
 	</group>
 </launch>

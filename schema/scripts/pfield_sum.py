@@ -14,8 +14,8 @@ class node:
 		self.pfields = []
 		self.motor_pub = rospy.Publisher("motor_cmd", Twist, queue_size = 10)
 
-		rospy.Subscriber("/percepts/sonar_pfield", pfield, self.newPfieldCb)
-		rospy.Subscriber("/percepts/kinect_pfield", pfield, self.newPfieldCb)
+		rospy.Subscriber("/schema/avoid_pfield", pfield, self.newPfieldCb)
+		rospy.Subscriber("/percepts/kinect_pfield", pfield, self.newPfieldCb)	# TODO move from percepts to SCHEMA
 
 		rospy.Timer(rospy.Duration(0.05), self.updateCb)
 
@@ -35,7 +35,7 @@ class node:
 			vec_in.header = p.header
 			vec_in.vector = p.vector
 
-			print 'Vec in:\n',p
+			#print 'Vec in:\n',p
 			# Convert to base link
 			try:
 				vec_out = self.listener.transformVector3('/base_link', vec_in)
@@ -43,12 +43,12 @@ class node:
 				rospy.logerr("Can\'t sum vector with frame {0} because tf error: {1}".format(p.header.frame_id, e))
 				continue			
 
-			print 'Vec out:\n', vec_out
+			#print 'Vec out:\n', vec_out
 			# Sum
 			vector_sum[0] = vector_sum[0] + vec_out.vector.x
 			vector_sum[1] = vector_sum[1] + vec_out.vector.y
 
-		print 'Vector sum', vector_sum
+		#print 'Vector sum', vector_sum
 
 		# Publish motor cmd
 		#	Any Y component gets maped to rotation
@@ -59,7 +59,7 @@ class node:
 		self.motor_pub.publish(msg)
 
 	def newPfieldCb(self, field):
-		print 'newField'
+		#print 'newField'
 		self.pfields.append(field)
 
 

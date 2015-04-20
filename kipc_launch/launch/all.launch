@@ -29,7 +29,6 @@
 
 	<include file="$(find kipc_launch)/launch/percepts.launch">
 		<arg name="use_kinect" value="$(arg use_kinect)"/>
-		<arg name="use_sonar" value="$(arg use_sonar)"/>
 		<arg name="min_pc_height" value="$(arg min_pc_height)"/>
 		<arg name="max_pc_height" value="$(arg max_pc_height)"/>
 		<arg name="euclidean_cluster_tolerance" value="$(arg euclidean_cluster_tolerance)"/>
@@ -39,17 +38,19 @@
 		<arg name="kinect_pfield_strength" value="$(arg kinect_pfield_strength)"/>
 		<arg name="kinect_pfield_decay_time" value="$(arg kinect_pfield_decay_time)"/>
 		<arg name="cylinder_axis_tolerance" value="$(arg cylinder_axis_tolerance)"/>
-		<arg name="max_ticks" value="$(arg max_ticks)"/>
-		<arg name="mid_ticks" value="$(arg mid_ticks)"/>
-		<arg name="min_ticks" value="$(arg min_ticks)"/>
-		<arg name="max_pfield" value="$(arg max_pfield)"/>
-		<arg name="mid_pfield" value="$(arg mid_pfield)"/>
 	</include>
 
 	<include file="$(find kipc_launch)/launch/hardware_interface.launch">
 		<arg name="disable_motors" value="$(arg disable_motors)"/>
 	</include>
 
-	<include file="$(find kipc_launch)/launch/schema.launch"/>
+	<include file="$(find kipc_launch)/launch/schema.launch">
+		<arg name="use_sonar" value="$(arg use_sonar)"/>
+		<arg name="max_ticks" value="$(arg max_ticks)"/>
+		<arg name="mid_ticks" value="$(arg mid_ticks)"/>
+		<arg name="min_ticks" value="$(arg min_ticks)"/>
+		<arg name="max_pfield" value="$(arg max_pfield)"/>
+		<arg name="mid_pfield" value="$(arg mid_pfield)"/>
+	</include>
 
 </launch>

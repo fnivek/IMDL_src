@@ -5,6 +5,7 @@ from percept_generators.msg import pfield
 from sensor_msgs.msg import Range
 import numpy as np
 import math
+from schema_base import schema_base
 
 from collections import deque
 
@@ -14,16 +15,14 @@ from collections import deque
 		the y component is converted into a torque 
 """
 
-class node:
+class schema(schema_base):
 	range_tf_frames = ('front_sonar_link', 'back_sonar_link', 'front_right_sonar_link', 'front_left_sonar_link')
 
-	def __init__(self):
-		rospy.init_node('sonar_to_pfield', anonymous=False)
-		rospy.Subscriber("/hardware_interface/sonar_data", Int32MultiArray, self.sonar_data_cb)
+	def __init__(self, name):
+		schema_base.__init__(self, name)
 
 		self.sizeOfDeques = 3
 		self.sonar_data = [deque() for x in range(4)]
-		self.pfield_pub = rospy.Publisher("sonar_pfield", pfield, queue_size = 10)
 		self.range_pub = rospy.Publisher("sonar_range", Range, queue_size = 10)
 
 		# Keep in mind max ticks produces the min pfield and min ticks produces max pfield
@@ -40,6 +39,8 @@ class node:
 		m2 = 1.0 * (self.mid_pfield - self.max_pfield) / (self.mid_ticks - self.min_ticks)
 		b2 = self.max_pfield - (1.0 * m2 * self.min_ticks) 
 		self.far_line = np.matrix([m2, b2])
+
+		rospy.Subscriber("/hardware_interface/sonar_data", Int32MultiArray, self.sonar_data_cb)
 
 
 	def ticksToMeters(self, ticks):
@@ -90,7 +91,7 @@ class node:
 		now = rospy.Time.now()
 		for i, r in enumerate(range_msg):
 			r.header.stamp = now
-			r.header.frame_id = node.range_tf_frames[i]
+			r.header.frame_id = schema.range_tf_frames[i]
 			r.radiation_type = Range.ULTRASOUND
 			r.field_of_view = 15 * math.pi / 180
 			r.min_range = 0.02
@@ -104,7 +105,7 @@ class node:
 			# An inverse tangent function is used to calculate a potential field
 			# K * cot((pi/2920000)*(x - 40000))
 		pfield_mags = map(self.generatePfieldMagnitude, sonar_avg)
-		print pfield_mags
+		#print pfield_mags
 
 		#pfield_mags = map( lambda avg: 0.7 / math.tan(1.07588789506499e-6 * avg + 0.0430355158025),
 		#						sonar_avg)
@@ -118,13 +119,13 @@ class node:
 		pfield_msg.header.frame_id = "/base_link"
 		pfield_msg.decay_time = 0.1
 
-		self.pfield_pub.publish(pfield_msg)
+		self.publishPfield(pfield_msg)
 	
 
 def main():
 	# Ros initilization
 	#Init ros
-	this_node = node()
+	node = schema('avoid')
 
 	rospy.spin()
 
