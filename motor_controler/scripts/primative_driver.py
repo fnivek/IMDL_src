@@ -19,9 +19,9 @@ class node:
 		self.i_err_l = 0
 		self.i_err_r = 0
 
-		self.kp = rospy.get_param('gain_p', 0.25)
-		self.kd = rospy.get_param('gain_d', 0.01)
-		self.ki = rospy.get_param('gain_i', 0.05)	# Integral scares me...
+		self.kp = rospy.get_param('~gain_p', 0.25)
+		self.kd = rospy.get_param('~gain_d', 0.01)
+		self.ki = rospy.get_param('~gain_i', 0.05)	# Integral scares me...
 
 		self.wheel_base = rospy.get_param('/wheel_base', 0.3048) # 0.3048 m = 12 in
 		self.wheel_radius = rospy.get_param('/wheel_radius', 0.06)

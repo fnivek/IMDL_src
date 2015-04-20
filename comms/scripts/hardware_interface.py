@@ -31,7 +31,7 @@ def main():
 	#Init ros
 	rospy.init_node('hardware_interface', anonymous=False)
 
-	port = rospy.get_param('port', '/dev/serial/by-id/usb-KipCDroid_HardwareInterface-if00')
+	port = rospy.get_param('~port', '/dev/serial/by-id/usb-KipCDroid_HardwareInterface-if00')
 	rospy.loginfo('Attempting to connect to %s' % port)
 
 	while not rospy.is_shutdown():
