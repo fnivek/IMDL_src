@@ -1,5 +1,9 @@
 <launch>
 	<group ns="schema">
 		<node pkg="schema" type="pfield_sum.py" name="pfield_sum"/>
+		<node pkg="schema" type="spin.py" name="spin"/>
+		<node pkg="schema" type="go_to_closses_sphere.py" name="go_to_closses_sphere"/>
+		<node pkg="schema" type="go_to_start_gate.py" name="go_to_start_gate"/>
+		<node pkg="schema" type="wander.py" name="wander"/>
 	</group>
 </launch>
