@@ -57,12 +57,11 @@ class node:
 		Vl = msg.data[0] * self.wheel_radius
 		Vr = msg.data[1] * self.wheel_radius
 
-		dx = 0
-		dy = 0
+		dpos_vec = np.matrix([[0.0], [0.0]])
 		dtheta = 0
 
 		if(Vl == Vr):
-			dx = Vl * time_step  
+			dpos_vec[0] = Vl * time_step  
 		else:
 			# Instantanious values
 			R = (self.wheel_base * (Vl + Vr)) / (2 * (Vr - Vl))
@@ -78,9 +77,10 @@ class node:
 
 			# Kinematic equations assuming no slip
 			dtheta = time_step * w_avg			# Angular rads changed along ICC, this is not the change in the reference frame
-			dx = R_avg * np.sin(dtheta)
-			dy = R_avg * (1 - np.cos(dtheta))
-			#print '[dx, dy, d_theta]: [%f, %f, %f]' % (dx, dy, dtheta)
+			dpos_vec[0] = R_avg * np.sin(dtheta)
+			dpos_vec[1] = R_avg * (1 - np.cos(dtheta))
+			#print dpos_vec
+			#print '[dx, dy, d_theta]: [%f, %f, %f]' % (dpos_vec.item(0), dpos_vec.item(1), dtheta)
 
 		# Transform cords
 		trans = [0,0,0]	#x y z
@@ -90,11 +90,16 @@ class node:
 		except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
 			rospy.logerr('TF error: %s' % e)
 			# TODO: make sure we don't reset our position on an error
+		trash, trash, frame_theta = tf.transformations.euler_from_quaternion(rot)
+		rotation = np.matrix([[np.cos(frame_theta), -1.0 * np.sin(frame_theta)],
+				   [np.sin(frame_theta), np.cos(frame_theta)]]) 
+		rotated_dpos_vec = rotation * dpos_vec
+
 		rot = tf.transformations.quaternion_multiply(rot, tf.transformations.quaternion_from_euler(0, 0, dtheta))		
 		
 		# Set up a tf brodcaster
 		br = tf.TransformBroadcaster()
-		br.sendTransform((trans[0] + dx, trans[1] + dy, 0),
+		br.sendTransform((trans[0] + rotated_dpos_vec.item(0), trans[1] + rotated_dpos_vec.item(1), 0),
 						 rot,
 						 rospy.Time.now(),
 						 'base_link',
