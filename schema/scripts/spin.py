@@ -11,7 +11,15 @@ class schema(schema_base):
 		self.timer = rospy.Timer(rospy.Duration(0.1), self.updateCb)
 
 	def updateCb(self, event):
-		pass
+		spin = pfield()
+		spin.header.stamp = rospy.get_rostime()
+		spin.header.frame_id = '/base_link'
+		spin.vector.x = 0
+		spin.vector.y = 5
+		spin.vector.z = 0
+		spin.decay_time = 0.1
+
+		self.publishPfield(spin)
 
 if __name__ == '__main__':
 	node = schema('spin')
