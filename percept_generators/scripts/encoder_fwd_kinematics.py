@@ -11,13 +11,15 @@ import tf
 
 class node:
 	def __init__(self):
-		self.motor_vel_sub = rospy.Subscriber('motor_vels', Float64MultiArray, self.vels_cb)
 		self.listener = tf.TransformListener()
 		self.last_time = 0
 		self.last_R = 0
 		self.last_w = 0
 		self.wheel_base = rospy.get_param('/wheel_base', 0.3048) # 0.3048 m = 12 in
 		self.wheel_radius = rospy.get_param('/wheel_radius', 0.06)
+
+		
+		self.motor_vel_sub = rospy.Subscriber('motor_vels', Float64MultiArray, self.vels_cb)
 
 	#Callback for motor angular velocities
 	# 
