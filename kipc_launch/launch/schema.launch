@@ -17,6 +17,8 @@
 
 		<node pkg="schema" type="wander.py" name="wander"/>
 
+		<node pkg="schema" type="forward.py" name="forward"/>
+
 		<node if="$(arg use_sonar)" pkg="schema" type="avoid.py" name="avoid">
 			<param name="max_ticks" value="$(arg max_ticks)" type="int"/>
 			<param name="mid_ticks" value="$(arg mid_ticks)" type="int"/>

@@ -36,7 +36,7 @@ class mission_demo_day:
 		self.in_range_of_sphere_gate_distance = 0.55
 
 
-		self.schema_names = ('avoid', 'wander', 'go_to_closses_sphere', 'go_to_start_gate', 'spin')
+		self.schema_names = ('avoid', 'wander', 'go_to_closses_sphere', 'go_to_start_gate', 'spin', 'forward')
 
 		rospy.Timer(rospy.Duration(0.1), self.updateCb)
 
