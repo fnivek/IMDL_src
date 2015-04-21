@@ -7,8 +7,8 @@ from schema.msg import pfield
 class schema(schema_base):
 	def __init__(self, name):
 		schema_base.__init__(self, name)
-
-	rospy.Timer(rospy.Duration(0.1), self.updateCb)
+		rospy.Timer(rospy.Duration(0.1), self.updateCb)
+	
 
 	def updateCb(self, event):
 		fwd = pfield()
