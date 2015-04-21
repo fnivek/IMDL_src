@@ -17,7 +17,7 @@ class schema(schema_base):
 		fwd.vector.x = 3
 		fwd.vector.y = 0
 		fwd.vector.z = 0
-		fwd.pfield.decay_time = 0.1
+		fwd.decay_time = 0.1
 
 		self.publishPfield(fwd)
 
