@@ -1,9 +1,11 @@
 <launch>
 	<!-- Args -->
 	<arg name="disable_motors" default="0"/>
+	<arg name="use_kinect" default="1"/>
 
 	<group ns="hardware_interface">
 		<node pkg="hardware_interface" type="hardware_interface.py" name="hardware_interface"/>
 		<node unless="$(arg disable_motors)" pkg="hardware_interface" type="primative_driver.py" name="primative_driver"/>
+		<include if="$(arg use_kinect)" file="$(find openni_launch)/launch/openni.launch"/>
 	</group>
 </launch>

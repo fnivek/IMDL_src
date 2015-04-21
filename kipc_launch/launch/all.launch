@@ -24,8 +24,6 @@
 	<param name="/wheel_base" value="0.3048" type="double"/>
 	<param name="/wheel_radius" value="0.06" type="double"/>
 
-	<include if="$(arg use_kinect)" file="$(find openni_launch)/launch/openni.launch"/>
-
 	<include file="$(find kipc_launch)/launch/percepts.launch">
 		<arg name="use_kinect" value="$(arg use_kinect)"/>
 		<arg name="min_pc_height" value="$(arg min_pc_height)"/>
@@ -39,6 +37,7 @@
 
 	<include file="$(find kipc_launch)/launch/hardware_interface.launch">
 		<arg name="disable_motors" value="$(arg disable_motors)"/>
+		<arg name="use_kinect" value="$(arg use_kinect)"/>
 	</include>
 
 	<include file="$(find kipc_launch)/launch/schema.launch">
