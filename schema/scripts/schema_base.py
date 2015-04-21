@@ -11,7 +11,7 @@ class schema_base:
 		self.name = name
 		self.state = 0			# 0 is inhibited 1 is active
 
-		self.pfield_pub = rospy.Publisher(name + '_pfield', pfield, queue_size = 10)
+		self.pfield_pub = rospy.Publisher('pfield', pfield, queue_size = 10)
 		self.state_sub = rospy.Subscriber('schema_state', schema_state, self.schemaStateCb)
 
 	def schemaStateCb(self, state):

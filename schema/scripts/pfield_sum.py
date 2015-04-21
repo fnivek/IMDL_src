@@ -14,12 +14,7 @@ class node:
 		self.pfields = []
 		self.motor_pub = rospy.Publisher("motor_cmd", Twist, queue_size = 10)
 
-		# TODO: Turn into a rosparam
-		topics = ("/schema/avoid_pfield", "/schema/go_to_closses_sphere_pfield", "/schema/go_to_start_gate_pfield",
-			"/schema/spin_pfield", "/schema/wander_pfield")
-
-		for topic in topics:
-			rospy.Subscriber(topic, pfield, self.newPfieldCb)
+		rospy.Subscriber('pfield', pfield, self.newPfieldCb)
 
 		rospy.Timer(rospy.Duration(0.05), self.updateCb)
 
