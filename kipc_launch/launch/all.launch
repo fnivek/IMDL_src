@@ -19,6 +19,7 @@
 	<arg name="min_ticks" default="100000"/>
 	<arg name="max_pfield" default="20"/>
 	<arg name="mid_pfield" default="3"/>
+	<arg name="same_cylinder_distance" default="0.1"/>
 
 	<!-- Robot description -->
 	<param name="/wheel_base" value="0.3048" type="double"/>
@@ -33,6 +34,7 @@
 		<arg name="euclidean_max_cluster_size" value="$(arg euclidean_max_cluster_size)"/>
 		<arg name="voxel_size" value="$(arg voxel_size)"/>
 		<arg name="cylinder_axis_tolerance" value="$(arg cylinder_axis_tolerance)"/>
+		<arg name="same_cylinder_distance" value="$(arg same_cylinder_distance)"/>
 	</include>
 
 	<include file="$(find kipc_launch)/launch/hardware_interface.launch">

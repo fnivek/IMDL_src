@@ -55,7 +55,6 @@ class mission_demo_day:
 		elif self.state == 'search_for_start_gate':
 			self.publishSchemaStates(['avoid', 'wander'])
 
-			print now - start_gate.header.stamp
 			if now - start_gate.header.stamp < self.timeout:
 				self.state = 'go_to_start_gate'
 				print 'Found start gate switching to go_to_start_gate'
