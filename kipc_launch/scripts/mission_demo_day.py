@@ -19,7 +19,7 @@ class mission_demo_day:
 		#int8 START_GATE=3
 
 		self.last_detected_object = {}
-		old_time = rospy.get_time() - 60  # One minute ago
+		old_time = rospy.Time.from_sec(rospy.get_time() - 60)  # One minute ago
 		for x in range(object_msg.START_GATE + 1):
 			obj = object_msg()
 			obj.header.stamp = old_time
@@ -31,7 +31,7 @@ class mission_demo_day:
 
 		self.state = 'start'
 
-		self.timeout = 5
+		self.timeout = rospy.Duration.from_sec(5)
 		self.in_range_distance = 0.5
 
 		self.schema_names = ('avoid', 'wander', 'go_to_closses_sphere', 'go_to_start_gate', 'spin')
@@ -39,7 +39,7 @@ class mission_demo_day:
 		rospy.Timer(rospy.Duration(0.1), self.updateCb)
 
 	def updateCb(self, even):
-		now = rospy.get_time()
+		now = rospy.get_rostime()
 		start_gate = self.last_detected_object[object_msg.START_GATE]
 		sphere = self.last_detected_object[object_msg.SPHERE]
 
@@ -55,6 +55,7 @@ class mission_demo_day:
 		elif self.state == 'search_for_start_gate':
 			self.publishSchemaStates(['avoid', 'wander'])
 
+			print now - start_gate.header.stamp
 			if now - start_gate.header.stamp < self.timeout:
 				self.state = 'go_to_start_gate'
 				print 'Found start gate switching to go_to_start_gate'
@@ -64,7 +65,7 @@ class mission_demo_day:
 			self.publishSchemaStates(['avoid', 'go_to_start_gate'])
 
 			# Did we loose sight of it?
-			if now - start_gate.header.stamp < self.timeout:
+			if now - start_gate.header.stamp.to_sec() < self.timeout:
 				self.state = 'search_for_start_gate'
 				print 'Lost sight of start gate switching to go_to_start_gate'
 				return
@@ -90,7 +91,7 @@ class mission_demo_day:
 		elif self.state == 'search_for_sphere':
 			self.publishSchemaStates(['avoid', 'wander'])
 
-			if now - sphere.header.stamp < self.timeout:
+			if now - sphere.header.stamp.to_sec() < self.timeout:
 				self.state = 'go_to_closses_sphere'
 				print 'Found a sphere switching to go_to_closses_sphere'
 
@@ -99,7 +100,7 @@ class mission_demo_day:
 			self.publishSchemaStates(['avoid', 'go_to_closses_sphere'])
 
 			# Did we loose sight of it?
-			if now - sphere.header.stamp < self.timeout:
+			if now - sphere.header.stamp.to_sec() < self.timeout:
 				self.state = 'search_for_sphere'
 				print 'Lost sight of sphere switching to go_to_sphere'
 				return
@@ -142,6 +143,7 @@ class mission_demo_day:
 			self.schema_state_pub.publish(msg)
 
 	def objectCb(self, obj):
+		print obj
 		self.last_detected_object[obj.type] = obj
 
 
