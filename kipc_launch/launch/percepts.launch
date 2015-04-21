@@ -8,8 +8,6 @@
 	<arg name="euclidean_min_cluster_size" default="100"/>	
 	<arg name="euclidean_max_cluster_size" default="1048575"/>
 	<arg name="voxel_size" default="0.01"/>
-	<arg name="kinect_pfield_strength" default="1"/>
-	<arg name="kinect_pfield_decay_time" default="2"/>
 	<arg name="cylinder_axis_tolerance" default="10"/>
 
 	<!-- Static transforms -->
@@ -33,15 +31,13 @@
 
 		<node pkg="percept_generators" type="encoder_fwd_kinematics.py" name="encoder_fwd_kinematics"/>
 
-		<node if="$(arg use_kinect)" pkg="kinect" type="colored_obj_extractor" name="object_extractor">
+		<node if="$(arg use_kinect)" pkg="percept_generators" type="colored_obj_extractor" name="object_extractor">
 			<param name="min_pc_height" value="$(arg min_pc_height)" type="double"/>
 			<param name="max_pc_height" value="$(arg max_pc_height)" type="double"/>
 			<param name="euclidean_cluster_tolerance" value="$(arg euclidean_cluster_tolerance)" type="double"/>
 			<param name="euclidean_min_cluster_size" value="$(arg euclidean_min_cluster_size)"/>	
 			<param name="euclidean_max_cluster_size" value="$(arg euclidean_max_cluster_size)" type="int"/>
 			<param name="voxel_size" value="$(arg voxel_size)" type="double"/>
-			<param name="kinect_pfield_strength" value="$(arg kinect_pfield_strength)" type="double"/>
-			<param name="kinect_pfield_decay_time" value="$(arg kinect_pfield_decay_time)" type="double"/>
 			<param name="cylinder_axis_tolerance" value="$(arg cylinder_axis_tolerance)" type="double"/>
 		</node>
 	</group>
