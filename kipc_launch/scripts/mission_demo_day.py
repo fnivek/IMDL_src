@@ -64,7 +64,7 @@ class mission_demo_day:
 			self.publishSchemaStates(['avoid', 'go_to_start_gate'])
 
 			# Did we loose sight of it?
-			if now - start_gate.header.stamp.to_sec() < self.timeout:
+			if now - start_gate.header.stamp.to_sec() > self.timeout:
 				self.state = 'search_for_start_gate'
 				print 'Lost sight of start gate switching to go_to_start_gate'
 				return
@@ -99,7 +99,7 @@ class mission_demo_day:
 			self.publishSchemaStates(['avoid', 'go_to_closses_sphere'])
 
 			# Did we loose sight of it?
-			if now - sphere.header.stamp.to_sec() < self.timeout:
+			if now - sphere.header.stamp.to_sec() > self.timeout:
 				self.state = 'search_for_sphere'
 				print 'Lost sight of sphere switching to go_to_sphere'
 				return
