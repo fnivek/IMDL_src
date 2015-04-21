@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from percept_generators.msg import pfield
+from schema.msg import pfield
 from schema.msg import schema_state
 
 class schema_base:

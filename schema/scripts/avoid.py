@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 from std_msgs.msg import Int32MultiArray
-from percept_generators.msg import pfield
+from schema.msg import pfield
 from sensor_msgs.msg import Range
 import numpy as np
 import math

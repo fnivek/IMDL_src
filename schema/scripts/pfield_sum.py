@@ -6,7 +6,7 @@
 import rospy
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Vector3Stamped
-from percept_generators.msg import pfield
+from schema.msg import pfield
 import tf
 
 class node:

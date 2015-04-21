@@ -50,6 +50,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   schema_state.msg
+  pfield.msg
 )
 
 ## Generate services in the 'srv' folder

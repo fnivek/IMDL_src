@@ -8,6 +8,8 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   sensor_msgs
+  percept_generators
+  message_generation
 )
 
 find_package(PCL REQUIRED)
@@ -67,10 +69,12 @@ find_package(PCL REQUIRED)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  percept_generators
+  sensor_msgs
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -84,7 +88,7 @@ find_package(PCL REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES kinect
-#  CATKIN_DEPENDS pcl roscpp std_msgs
+  CATKIN_DEPENDS pcl roscpp std_msgs message_runtime percept_generators
 #  DEPENDS system_lib
 )
 

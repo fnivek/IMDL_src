@@ -2,7 +2,7 @@
 
 import rospy
 from schema_base import schema_base
-from percept_generators.msg import pfield
+from schema.msg import pfield
 
 class schema(schema_base):
 	def __init__(self, name):
