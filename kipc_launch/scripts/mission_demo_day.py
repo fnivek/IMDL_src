@@ -32,7 +32,9 @@ class mission_demo_day:
 		self.state = 'start'
 
 		self.timeout = rospy.Duration.from_sec(5)
-		self.in_range_distance = 0.5
+		self.in_range_of_start_gate_distance = 0.7
+		self.in_range_of_sphere_gate_distance = 0.55
+
 
 		self.schema_names = ('avoid', 'wander', 'go_to_closses_sphere', 'go_to_start_gate', 'spin')
 
@@ -64,14 +66,14 @@ class mission_demo_day:
 			self.publishSchemaStates(['avoid', 'go_to_start_gate'])
 
 			# Did we loose sight of it?
-			if now - start_gate.header.stamp.to_sec() > self.timeout:
+			if now - start_gate.header.stamp > self.timeout:
 				self.state = 'search_for_start_gate'
 				print 'Lost sight of start gate switching to go_to_start_gate'
 				return
 
 			# Check if we are in range
 			P = PointStamped()
-			P.point = start_gate.point
+			P.point = start_gate.centroid
 			P.header = start_gate.header
 			Pbase_link = PointStamped()
 			try:
@@ -82,7 +84,7 @@ class mission_demo_day:
 
 			x = np.array([Pbase_link.point.x, Pbase_link.point.y])
 			d = np.linalg.norm(x)
-			if d < self.in_range_distance:
+			if d < self.in_range_of_start_gate_distance:
 				self.state = 'search_for_sphere'
 				print 'Made it to start gate now search_for_sphere'
 
@@ -90,7 +92,7 @@ class mission_demo_day:
 		elif self.state == 'search_for_sphere':
 			self.publishSchemaStates(['avoid', 'wander'])
 
-			if now - sphere.header.stamp.to_sec() < self.timeout:
+			if now - sphere.header.stamp < self.timeout:
 				self.state = 'go_to_closses_sphere'
 				print 'Found a sphere switching to go_to_closses_sphere'
 
@@ -99,14 +101,14 @@ class mission_demo_day:
 			self.publishSchemaStates(['avoid', 'go_to_closses_sphere'])
 
 			# Did we loose sight of it?
-			if now - sphere.header.stamp.to_sec() > self.timeout:
+			if now - sphere.header.stamp > self.timeout:
 				self.state = 'search_for_sphere'
 				print 'Lost sight of sphere switching to go_to_sphere'
 				return
 
 			# Check if we are in range
 			P = PointStamped()
-			P.point = sphere.point
+			P.point = sphere.centroid
 			P.header = sphere.header
 			Pbase_link = PointStamped()
 			try:
@@ -117,7 +119,7 @@ class mission_demo_day:
 
 			x = np.array([Pbase_link.point.x, Pbase_link.point.y])
 			d = np.linalg.norm(x)
-			if d < self.in_range_distance:
+			if d < self.in_range_of_sphere_gate_distance:
 				self.state = 'victory'
 				print 'Made it to sphere Victory!'
 				self.victory_time = now
@@ -126,7 +128,7 @@ class mission_demo_day:
 		elif self.state == 'victory':
 			self.publishSchemaStates(['avoid', 'spin'])
 
-			if now - self.victory_time > 5:
+			if now - self.victory_time > self.timeout:
 				self.state = 'search_for_start_gate'
 				print 'Time for a victory lap; Starting again'
 
@@ -142,7 +144,6 @@ class mission_demo_day:
 			self.schema_state_pub.publish(msg)
 
 	def objectCb(self, obj):
-		print obj
 		self.last_detected_object[obj.type] = obj
 
 
