@@ -78,7 +78,7 @@ object_extractor::object_extractor() :
 	sphere_pub_ = nh.advertise<point_msg>(nh.resolveName("sphere_pc"), 10);
 	cylinder_pub_ = nh.advertise<point_msg>(nh.resolveName("cylinder_pc"), 10);
 	scene_pub_ = nh.advertise<point_msg>(nh.resolveName("scene_pc"), 10);
-	object_pub_ = nh.advertise<percept_generators::object>(nh.resolveName("kinect_objects"), 10);
+	object_pub_ = nh.advertise<percept_generators::object>(nh.resolveName("objects"), 10);
 
 	//Get some ros params
 	std::string name = private_nh.resolveName("min_pc_height");
