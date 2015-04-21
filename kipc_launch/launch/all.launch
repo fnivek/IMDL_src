@@ -20,6 +20,7 @@
 	<arg name="max_pfield" default="20"/>
 	<arg name="mid_pfield" default="3"/>
 	<arg name="same_cylinder_distance" default="0.1"/>
+	<arg name="cylinder_lifetime" default="5.0"/>
 
 	<!-- Robot description -->
 	<param name="/wheel_base" value="0.3048" type="double"/>
@@ -35,6 +36,7 @@
 		<arg name="voxel_size" value="$(arg voxel_size)"/>
 		<arg name="cylinder_axis_tolerance" value="$(arg cylinder_axis_tolerance)"/>
 		<arg name="same_cylinder_distance" value="$(arg same_cylinder_distance)"/>
+		<arg name="cylinder_lifetime" value="$(arg cylinder_lifetime)"/>
 	</include>
 
 	<include file="$(find kipc_launch)/launch/hardware_interface.launch">

@@ -10,6 +10,7 @@
 	<arg name="voxel_size" default="0.01"/>
 	<arg name="cylinder_axis_tolerance" default="10"/>
 	<arg name="same_cylinder_distance" default="0.1"/>
+	<arg name="cylinder_lifetime" default="5.0"/>
 
 	<!-- Static transforms -->
 	<node pkg="tf" type="static_transform_publisher" name="kinect_to_base_link"
@@ -44,6 +45,7 @@
 
 		<node if="$(arg use_kinect)" pkg="percept_generators" type="find_start_gate.py" name="find_start_gate">
 			<param name="same_cylinder_distance" value="$(arg same_cylinder_distance)" type="double"/>
+			<param name="cylinder_lifetime" value="$(arg cylinder_lifetime)" type="double"/>
 		</node>
 	</group>
 
