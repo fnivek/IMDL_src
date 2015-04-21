@@ -27,7 +27,7 @@ class mission_demo_day:
 			self.last_detected_object[x] = obj
 
 		self.schema_state_pub = rospy.Publisher('/schema/schema_state', schema_state, queue_size = 10)
-		self.object_sub = rospy.Subscriber('/percept_generators/objects', object_msg, self.objectCb)
+		self.object_sub = rospy.Subscriber('/percepts/objects', object_msg, self.objectCb)
 
 		self.state = 'start'
 
