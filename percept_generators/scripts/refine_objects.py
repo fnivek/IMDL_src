@@ -65,11 +65,9 @@ class refine_objects:
 			if self.isSameObject(new_obj, old_obj):
 				# Replace the current object with its newer self
 				self.objects[new_obj.type][i] = new_obj
-				print 'Replace obj'
 				return
 
 		# If we are this far then its a new object yay
-		print 'new obj'
 		self.objects[new_obj.type].append(new_obj)
 		#print self.cylinders
 

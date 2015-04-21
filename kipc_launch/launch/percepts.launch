@@ -9,8 +9,19 @@
 	<arg name="euclidean_max_cluster_size" default="1048575"/>
 	<arg name="voxel_size" default="0.01"/>
 	<arg name="cylinder_axis_tolerance" default="10"/>
+	
+	<arg name="start_gate_min_width" default="0.250"/>
+	<arg name="start_gate_max_width" default="1.0"/>
+
+	<arg name="same_unkown_distance" default="0.1"/>
 	<arg name="same_cylinder_distance" default="0.1"/>
+	<arg name="same_sphere_distance" default="0.1"/>
+	<arg name="same_start_gate_distance" default="0.1"/>
+
+	<arg name="unkown_lifetime" default="5.0"/>
 	<arg name="cylinder_lifetime" default="5.0"/>
+	<arg name="sphere_lifetime" default="5.0"/>
+	<arg name="start_gate_lifetime" default="5.0"/>
 
 	<!-- Static transforms -->
 	<node pkg="tf" type="static_transform_publisher" name="kinect_to_base_link"
@@ -44,8 +55,20 @@
 		</node>
 
 		<node if="$(arg use_kinect)" pkg="percept_generators" type="find_start_gate.py" name="find_start_gate">
+			<param name="start_gate_min_width" value="$(arg start_gate_min_width)" type="double"/>
+			<param name="start_gate_max_width" value="$(arg start_gate_max_width)" type="double"/>
+		</node>
+
+		<node pkg="percept_generators" type="refine_objects.py" name="refine_objects">
+			<param name="same_unkown_distance" value="$(arg same_unkown_distance)" type="double"/>
 			<param name="same_cylinder_distance" value="$(arg same_cylinder_distance)" type="double"/>
+			<param name="same_sphere_distance" value="$(arg same_sphere_distance)" type="double"/>
+			<param name="same_start_gate_distance" value="$(arg same_start_gate_distance)" type="double"/>
+
+			<param name="unkown_lifetime" value="$(arg unkown_lifetime)" type="double"/>
 			<param name="cylinder_lifetime" value="$(arg cylinder_lifetime)" type="double"/>
+			<param name="sphere_lifetime" value="$(arg sphere_lifetime)" type="double"/>
+			<param name="start_gate_lifetime" value="$(arg start_gate_lifetime)" type="double"/>
 		</node>
 	</group>
 
