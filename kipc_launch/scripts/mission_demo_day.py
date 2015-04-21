@@ -2,6 +2,7 @@
 import rospy
 from schema.msg import schema_state
 from percept_generators.msg import object as object_msg
+from percept_generators.msg import objectArray as objectArray_msg
 from geometry_msgs.msg import PointStamped
 import tf
 import numpy as np
@@ -18,16 +19,11 @@ class mission_demo_day:
 		#int8 SPHERE=2
 		#int8 START_GATE=3
 
-		self.last_detected_object = {}
 		old_time = rospy.Time.from_sec(rospy.get_time() - 60)  # One minute ago
-		for x in range(object_msg.START_GATE + 1):
-			obj = object_msg()
-			obj.header.stamp = old_time
-			obj.type = x
-			self.last_detected_object[x] = obj
-
-		self.schema_state_pub = rospy.Publisher('/schema/schema_state', schema_state, queue_size = 10)
-		self.object_sub = rospy.Subscriber('/percepts/objects', object_msg, self.objectCb)
+		self.last_sphere = object_msg()
+		self.last_start_gate = object_msg()
+		self.last_sphere.header.stamp = old_time
+		self.last_start_gate.header.stamp = old_time
 
 		self.state = 'start'
 
@@ -35,15 +31,16 @@ class mission_demo_day:
 		self.in_range_of_start_gate_distance = 0.7
 		self.in_range_of_sphere_gate_distance = 0.55
 
-
 		self.schema_names = ('avoid', 'wander', 'go_to_closses_sphere', 'go_to_start_gate', 'spin', 'forward')
 
+
+
+		self.schema_state_pub = rospy.Publisher('/schema/schema_state', schema_state, queue_size = 10)
 		rospy.Timer(rospy.Duration(0.1), self.updateCb)
+		self.object_sub = rospy.Subscriber('/percepts/objects', objectArray_msg, self.objectCb)
 
 	def updateCb(self, even):
 		now = rospy.get_rostime()
-		start_gate = self.last_detected_object[object_msg.START_GATE]
-		sphere = self.last_detected_object[object_msg.SPHERE]
 
 		## Start State
 		if self.state == 'start':
@@ -57,7 +54,7 @@ class mission_demo_day:
 		elif self.state == 'search_for_start_gate':
 			self.publishSchemaStates(['avoid', 'wander'])
 
-			if now - start_gate.header.stamp < self.timeout:
+			if now - self.last_start_gate.header.stamp < self.timeout:
 				self.state = 'go_to_start_gate'
 				print 'Found start gate switching to go_to_start_gate'
 
@@ -66,24 +63,13 @@ class mission_demo_day:
 			self.publishSchemaStates(['avoid', 'go_to_start_gate'])
 
 			# Did we loose sight of it?
-			if now - start_gate.header.stamp > self.timeout:
+			if now - self.last_start_gate.header.stamp > self.timeout:
 				self.state = 'search_for_start_gate'
 				print 'Lost sight of start gate switching to go_to_start_gate'
 				return
 
 			# Check if we are in range
-			P = PointStamped()
-			P.point = start_gate.centroid
-			P.header = start_gate.header
-			Pbase_link = PointStamped()
-			try:
-				Pbase_link = self.listener.transformPoint('/base_link', P)
-			except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
-				rospy.logerr('TF error: %s' % e)
-				return
-
-			x = np.array([Pbase_link.point.x, Pbase_link.point.y])
-			d = np.linalg.norm(x)
+			d = self.getDistanceToObj(self.last_start_gate)
 			if d < self.in_range_of_start_gate_distance:
 				self.state = 'search_for_sphere'
 				print 'Made it to start gate now search_for_sphere'
@@ -92,7 +78,7 @@ class mission_demo_day:
 		elif self.state == 'search_for_sphere':
 			self.publishSchemaStates(['avoid', 'wander'])
 
-			if now - sphere.header.stamp < self.timeout:
+			if now - self.last_sphere.header.stamp < self.timeout:
 				self.state = 'go_to_closses_sphere'
 				print 'Found a sphere switching to go_to_closses_sphere'
 
@@ -101,24 +87,13 @@ class mission_demo_day:
 			self.publishSchemaStates(['avoid', 'go_to_closses_sphere'])
 
 			# Did we loose sight of it?
-			if now - sphere.header.stamp > self.timeout:
+			if now - self.last_sphere.header.stamp > self.timeout:
 				self.state = 'search_for_sphere'
-				print 'Lost sight of sphere switching to go_to_sphere'
+				print 'Lost sight of sphere switching to search_to_sphere'
 				return
 
 			# Check if we are in range
-			P = PointStamped()
-			P.point = sphere.centroid
-			P.header = sphere.header
-			Pbase_link = PointStamped()
-			try:
-				Pbase_link = self.listener.transformPoint('/base_link', P)
-			except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
-				rospy.logerr('TF error: %s' % e)
-				return
-
-			x = np.array([Pbase_link.point.x, Pbase_link.point.y])
-			d = np.linalg.norm(x)
+			d = self.getDistanceToObj(self.last_sphere)
 			if d < self.in_range_of_sphere_gate_distance:
 				self.state = 'victory'
 				print 'Made it to sphere Victory!'
@@ -143,8 +118,38 @@ class mission_demo_day:
 
 			self.schema_state_pub.publish(msg)
 
-	def objectCb(self, obj):
-		self.last_detected_object[obj.type] = obj
+	def getClossesObj(self, objs):
+		distances = map(self.getDistanceToObj, objs)
+		i = distances.index(min(distances))
+		return objs[i]
+
+	def getMostRecentObj(self, objs):
+		now = rospy.get_rostime()
+		times = map(lambda obj: now - obj.header.stamp, objs)
+		i = times.index(min(times))
+		return objs[i]
+
+	def getDistanceToObj(self, obj):
+		# Check if we are in range
+		P = PointStamped()
+		P.point = obj.centroid
+		P.header = obj.header
+		Pbase_link = PointStamped()
+		try:
+			Pbase_link = self.listener.transformPoint('/base_link', P)
+		except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
+			rospy.logerr('TF error: %s' % e)
+			return
+
+		x = np.array([Pbase_link.point.x, Pbase_link.point.y])
+		return np.linalg.norm(x)
+
+	def objectCb(self, objs):
+		if objs.objects:	# Make sure its not empty
+			if objs.type == objectArray_msg.SPHERE:
+				self.last_sphere = self.getClossesObj(objs.objects)
+			elif objs.type == objectArray_msg.START_GATE:
+				self.last_start_gate = self.getMostRecentObj(objs.objects)
 
 
 
