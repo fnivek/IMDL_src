@@ -19,6 +19,7 @@ find_package(PCL REQUIRED)
 add_message_files(
   FILES
   object.msg
+  objectArray.msg
 )
 
 ## Generate added messages and services with any dependencies listed here
