@@ -2,6 +2,9 @@
 <launch>
 	<!-- Hardware interface -->
 	<arg name="disable_motors" default="0"/>
+	<arg name="gain_p" default="0.25"/>
+	<arg name="gain_i" default="0.01"/>
+	<arg name="gain_d" default="0.05"/>
 
 	<!-- Percept generators -->
 	<arg name="use_kinect" default="1"/>
@@ -72,6 +75,9 @@
 	<include file="$(find kipc_launch)/launch/hardware_interface.launch">
 		<arg name="disable_motors" value="$(arg disable_motors)"/>
 		<arg name="use_kinect" value="$(arg use_kinect)"/>
+		<arg name="gain_p" value="$(arg gain_p)"/>
+		<arg name="gain_i" value="$(arg gain_i)"/>
+		<arg name="gain_d" value="$(arg gain_d)"/>
 	</include>
 
 	<include file="$(find kipc_launch)/launch/schema.launch">
