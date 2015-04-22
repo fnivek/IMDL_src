@@ -26,7 +26,7 @@ class node:
 		self.wheel_base = rospy.get_param('/wheel_base', 0.3048) # 0.3048 m = 12 in
 		self.wheel_radius = rospy.get_param('/wheel_radius', 0.06)
 
-		self.ramp_coef = 1  # Duty / s
+		self.ramp_coef = rospy.get_param('~motor_max_ramp_rate', 1)  # Duty / s
 		self.current_duty = [0, 0]
 		self.desired_duty = [0, 0]
 
