@@ -29,7 +29,7 @@ class mission_demo_day:
 
 		self.timeout = rospy.Duration.from_sec(5)
 		self.in_range_of_start_gate_distance = 0.7
-		self.in_range_of_sphere_gate_distance = 0.55
+		self.in_range_of_sphere_distance = 0.55
 
 		self.schema_names = ('avoid', 'wander', 'go_to_closses_sphere', 'go_to_start_gate', 'spin', 'forward')
 
@@ -94,7 +94,9 @@ class mission_demo_day:
 
 			# Check if we are in range
 			d = self.getDistanceToObj(self.last_sphere)
-			if d < self.in_range_of_sphere_gate_distance:
+			#print d
+			#print self.last_sphere
+			if d < self.in_range_of_sphere_distance:
 				self.state = 'victory'
 				print 'Made it to sphere Victory!'
 				self.victory_time = now
