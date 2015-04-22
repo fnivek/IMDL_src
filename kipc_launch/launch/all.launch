@@ -29,8 +29,8 @@
 	<arg name="start_gate_max_width" default="1.0"/>
 
 	<!-- Schema -->
-	<arg name="max_ticks" default="250000"/>
-	<arg name="mid_ticks" default="100000"/>
+	<arg name="avoid_max_ticks" default="250000"/>
+	<arg name="avoid_mid_ticks" default="100000"/>
 	<arg name="avoid_min_ticks" default="70000"/>
 	<arg name="avoid_max_pfield" default="3"/>
 	<arg name="avoid_mid_pfield" default="0.5"/>
@@ -76,8 +76,8 @@
 
 	<include file="$(find kipc_launch)/launch/schema.launch">
 		<arg name="use_sonar" value="$(arg use_sonar)"/>
-		<arg name="max_ticks" value="$(arg max_ticks)"/>
-		<arg name="mid_ticks" value="$(arg mid_ticks)"/>
+		<arg name="avoid_max_ticks" value="$(arg avoid_max_ticks)"/>
+		<arg name="avoid_mid_ticks" value="$(arg avoid_mid_ticks)"/>
 		<arg name="avoid_min_ticks" value="$(arg avoid_min_ticks)"/>
 		<arg name="avoid_max_pfield" value="$(arg avoid_max_pfield)"/>
 		<arg name="avoid_mid_pfield" value="$(arg avoid_mid_pfield)"/>

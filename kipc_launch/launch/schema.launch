@@ -1,7 +1,7 @@
 <launch>
 	<arg name="use_sonar" default="1"/>
-	<arg name="max_ticks" default="250000"/>
-	<arg name="mid_ticks" default="100000"/>
+	<arg name="avoid_max_ticks" default="250000"/>
+	<arg name="avoid_mid_ticks" default="100000"/>
 	<arg name="avoid_min_ticks" default="70000"/>
 	<arg name="avoid_max_pfield" default="3"/>
 	<arg name="avoid_mid_pfield" default="0.5"/>
@@ -36,14 +36,15 @@
 		</node>
 
 		<node pkg="schema" type="forward.py" name="forward">
-			<param name="wander_max_pfield" value="$(arg wander_max_pfield)" type="double"/>
-		</node>
-		<node if="$(arg use_sonar)" pkg="schema" type="avoid.py" name="avoid">
-			<param name="max_ticks" value="$(arg max_ticks)" type="int"/>
-			<param name="mid_ticks" value="$(arg mid_ticks)" type="int"/>
-			<param name="min_ticks" value="$(arg min_ticks)" type="int"/>
-			<param name="avoid_max_pfield" value="$(arg avoid_max_pfield)" type="double"/>
 			<param name="forward_max_pfield" value="$(arg forward_max_pfield)" type="double"/>
+		</node>
+		
+		<node if="$(arg use_sonar)" pkg="schema" type="avoid.py" name="avoid">
+			<param name="avoid_max_ticks" value="$(arg avoid_max_ticks)" type="int"/>
+			<param name="avoid_mid_ticks" value="$(arg avoid_mid_ticks)" type="int"/>
+			<param name="avoid_min_ticks" value="$(arg avoid_min_ticks)" type="int"/>
+			<param name="avoid_max_pfield" value="$(arg avoid_max_pfield)" type="double"/>
+			<param name="avoid_mid_pfield" value="$(arg avoid_mid_pfield)" type="double"/>
 		</node>
 	</group>
 </launch>
