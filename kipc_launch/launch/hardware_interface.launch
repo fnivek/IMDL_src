@@ -2,18 +2,14 @@
 	<!-- Args -->
 	<arg name="disable_motors" default="0"/>
 	<arg name="use_kinect" default="1"/>
-	<arg name="gain_p" default="0.25"/>
-	<arg name="gain_i" default="0.01"/>
-	<arg name="gain_d" default="0.05"/>
-	<arg name="motor_max_ramp_rate" default="1"/>
-
-			self.kp = rospy.get_param('~gain_p', 0.25)
-		self.kd = rospy.get_param('~gain_d', 0.01)
-		self.ki = rospy.get_param('~gain_i', 0.05)
+	<arg name="gain_p" default="0.009"/>
+	<arg name="gain_i" default="0.0"/>
+	<arg name="gain_d" default="0.00001"/>
+	<arg name="motor_max_ramp_rate" default="5"/>
 
 	<group ns="hardware_interface">
 		<node pkg="hardware_interface" type="hardware_interface.py" name="hardware_interface"/>
-		
+
 		<node unless="$(arg disable_motors)" pkg="hardware_interface" type="primative_driver.py" name="primative_driver">
 			<param name="gain_p" value="$(arg gain_p)" type="double"/>
 			<param name="gain_i" value="$(arg gain_i)" type="double"/>
