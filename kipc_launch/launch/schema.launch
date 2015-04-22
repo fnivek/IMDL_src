@@ -6,15 +6,15 @@
 	<arg name="avoid_max_pfield" default="3"/>
 	<arg name="avoid_mid_pfield" default="0.5"/>
 
-	<arg name="wander_max_pfield" defalult="1.0"/>
+	<arg name="wander_max_pfield" default="1.0"/>
 
-	<arg name="go_to_start_gate_max_pfield" defalult="1.0"/>
+	<arg name="go_to_start_gate_max_pfield" default="1.0"/>
 
-	<arg name="go_to_closses_sphere_max_pfield" defalult="1.0"/>
+	<arg name="go_to_closses_sphere_max_pfield" default="1.0"/>
 
-	<arg name="spin_max_pfield" defalult="1.0"/>
+	<arg name="spin_max_pfield" default="1.0"/>
 	
-	<arg name="forward_max_pfield" defalult="1.0"/>
+	<arg name="forward_max_pfield" default="1.0"/>
 	
 	<group ns="schema">
 		<node pkg="schema" type="pfield_sum.py" name="pfield_sum"/>
