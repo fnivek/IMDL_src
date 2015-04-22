@@ -64,7 +64,7 @@ class schema(schema_base):
 				field.vector.z = 0
 				field.decay_time = 0.1
 
-
+				self.publishPfield(field)
 			
 
 if __name__ == '__main__':
