@@ -269,7 +269,8 @@ void object_extractor::fitShape_(pointCloud::Ptr pc, percept_generators::object&
 	else if(sphere_fit >= 0.9)
 	{
 		vector4 centroid;
-		pcl::compute3DCentroid(*pc, cylinder_inliers, centroid);
+		pcl::compute3DCentroid(*pc, sphere_inliers, centroid);
+		//ROS_INFO("Sphere size centroid is: %f, %f, %f", centroid(0), 0.0, centroid(2));
 		obj.centroid.x = centroid(0);
 		obj.centroid.y = 0;
 		obj.centroid.z = centroid(2);
