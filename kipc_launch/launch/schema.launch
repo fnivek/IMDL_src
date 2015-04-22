@@ -1,30 +1,49 @@
 <launch>
 	<arg name="use_sonar" default="1"/>
-	<arg name="max_ticks" default="500000"/>
-	<arg name="mid_ticks" default="120000"/>
-	<arg name="min_ticks" default="100000"/>
-	<arg name="max_pfield" default="20"/>
-	<arg name="mid_pfield" default="3"/>
+	<arg name="max_ticks" default="250000"/>
+	<arg name="mid_ticks" default="100000"/>
+	<arg name="avoid_min_ticks" default="70000"/>
+	<arg name="avoid_max_pfield" default="3"/>
+	<arg name="avoid_mid_pfield" default="0.5"/>
+
+	<arg name="wander_max_pfield" defalult="1.0"/>
+
+	<arg name="go_to_start_gate_max_pfield" defalult="1.0"/>
+
+	<arg name="go_to_closses_sphere_max_pfield" defalult="1.0"/>
+
+	<arg name="spin_max_pfield" defalult="1.0"/>
+	
+	<arg name="forward_max_pfield" defalult="1.0"/>
 	
 	<group ns="schema">
 		<node pkg="schema" type="pfield_sum.py" name="pfield_sum"/>
 
-		<node pkg="schema" type="spin.py" name="spin"/>
+		<node pkg="schema" type="spin.py" name="spin">
+			<param name="spin_max_pfield" value="$(arg spin_max_pfield)" type="double"/>
+		</node>
 
-		<node pkg="schema" type="go_to_closses_sphere.py" name="go_to_closses_sphere"/>
+		<node pkg="schema" type="go_to_closses_sphere.py" name="go_to_closses_sphere">
+			<param name="go_to_closses_sphere_max_pfield" value="$(arg go_to_closses_sphere_max_pfield)" type="double"/>
+		</node>
 
-		<node pkg="schema" type="go_to_start_gate.py" name="go_to_start_gate"/>
+		<node pkg="schema" type="go_to_start_gate.py" name="go_to_start_gate">
+			<param name="go_to_start_gate_max_pfield" value="$(arg go_to_start_gate_max_pfield)" type="double"/>
+		</node>
 
-		<node pkg="schema" type="wander.py" name="wander"/>
+		<node pkg="schema" type="wander.py" name="wander">
+			<param name="wander_max_pfield" value="$(arg wander_max_pfield)" type="double"/>
+		</node>
 
-		<node pkg="schema" type="forward.py" name="forward"/>
-
+		<node pkg="schema" type="forward.py" name="forward">
+			<param name="wander_max_pfield" value="$(arg wander_max_pfield)" type="double"/>
+		</node>
 		<node if="$(arg use_sonar)" pkg="schema" type="avoid.py" name="avoid">
 			<param name="max_ticks" value="$(arg max_ticks)" type="int"/>
 			<param name="mid_ticks" value="$(arg mid_ticks)" type="int"/>
 			<param name="min_ticks" value="$(arg min_ticks)" type="int"/>
-			<param name="max_pfield" value="$(arg max_pfield)" type="double"/>
-			<param name="mid_pfield" value="$(arg mid_pfield)" type="double"/>
+			<param name="avoid_max_pfield" value="$(arg avoid_max_pfield)" type="double"/>
+			<param name="forward_max_pfield" value="$(arg forward_max_pfield)" type="double"/>
 		</node>
 	</group>
 </launch>

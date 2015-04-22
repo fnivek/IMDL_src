@@ -8,7 +8,7 @@ import numpy as np
 class schema(schema_base):
 	def __init__(self, name):
 		schema_base.__init__(self, name)
-		self.max_pfield = rospy.get_param('wander_max_pfield', 3)
+		self.max_pfield = rospy.get_param('~wander_max_pfield', 1.0)
 		rospy.Timer(rospy.Duration(0.1), self.updateCb)
 
 	def updateCb(self, event):

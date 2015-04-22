@@ -29,11 +29,17 @@
 	<arg name="start_gate_max_width" default="1.0"/>
 
 	<!-- Schema -->
-	<arg name="max_ticks" default="500000"/>
-	<arg name="mid_ticks" default="120000"/>
-	<arg name="min_ticks" default="100000"/>
-	<arg name="max_pfield" default="20"/>
-	<arg name="mid_pfield" default="3"/>
+	<arg name="max_ticks" default="250000"/>
+	<arg name="mid_ticks" default="100000"/>
+	<arg name="avoid_min_ticks" default="70000"/>
+	<arg name="avoid_max_pfield" default="3"/>
+	<arg name="avoid_mid_pfield" default="0.5"/>
+
+	<arg name="wander_max_pfield" defalult="1.0"/>
+	<arg name="go_to_start_gate_max_pfield" defalult="1.0"/>
+	<arg name="go_to_closses_sphere_max_pfield" defalult="1.0"/>
+	<arg name="spin_max_pfield" defalult="1.0"/>
+	<arg name="forward_max_pfield" defalult="1.0"/>
 
 	<!-- Robot description -->
 	<param name="/wheel_base" value="0.3048" type="double"/>
@@ -72,9 +78,19 @@
 		<arg name="use_sonar" value="$(arg use_sonar)"/>
 		<arg name="max_ticks" value="$(arg max_ticks)"/>
 		<arg name="mid_ticks" value="$(arg mid_ticks)"/>
-		<arg name="min_ticks" value="$(arg min_ticks)"/>
-		<arg name="max_pfield" value="$(arg max_pfield)"/>
-		<arg name="mid_pfield" value="$(arg mid_pfield)"/>
+		<arg name="avoid_min_ticks" value="$(arg avoid_min_ticks)"/>
+		<arg name="avoid_max_pfield" value="$(arg avoid_max_pfield)"/>
+		<arg name="avoid_mid_pfield" value="$(arg avoid_mid_pfield)"/>
+
+		<arg name="wander_max_pfield" value="$(arg wander_max_pfield)"/>
+
+		<arg name="go_to_start_gate_max_pfield" value="$(arg go_to_start_gate_max_pfield)"/>
+	
+		<arg name="go_to_closses_sphere_max_pfield" value="$(arg go_to_closses_sphere_max_pfield)"/>
+
+		<arg name="spin_max_pfield" value="$(arg spin_max_pfield)"/>
+
+		<arg name="forward_max_pfield" value="$(arg forward_max_pfield)"/>
 	</include>
 
 </launch>

@@ -16,7 +16,7 @@ class schema(schema_base):
 		schema_base.__init__(self, name)
 
 		self.listener = tf.TransformListener()
-		self.field_strength = rospy.get_param('go_to_start_gate_pfield_strength', 3)
+		self.field_strength = rospy.get_param('~go_to_start_gate_max_pfield', 1.0)
 
 		# Subscribers
 		self.object_sub = rospy.Subscriber('/percepts/objects', objectArray_msg, self.objectCb)

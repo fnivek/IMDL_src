@@ -29,8 +29,8 @@ class schema(schema_base):
 		self.max_ticks = rospy.get_param('~max_ticks', 500000)
 		self.mid_ticks = rospy.get_param('~mid_ticks', 120000)
 		self.min_ticks = rospy.get_param('~min_ticks', 100000)
-		self.max_pfield = rospy.get_param('~max_pfield', 20)
-		self.mid_pfield = rospy.get_param('~mid_pfield', 3)
+		self.max_pfield = rospy.get_param('~max_pfield', 3.0)
+		self.mid_pfield = rospy.get_param('~mid_pfield', 0.5)
 
 		# Piece wise linear approximation of exponintial function
 		m1 = 1.0 * self.mid_pfield / (self.mid_ticks - self.max_ticks)
