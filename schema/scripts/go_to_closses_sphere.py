@@ -49,7 +49,6 @@ class schema(schema_base):
 			if objs.type == objectArray_msg.SPHERE:
 				# Produce pfield for closses sphere only
 				sph = self.getClossesObj(objs.objects)
-				print sph
 
 				# Get the 
 				field_vec = np.array([sph.centroid.x, sph.centroid.y])
