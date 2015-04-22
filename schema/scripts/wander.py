@@ -9,12 +9,13 @@ class schema(schema_base):
 	def __init__(self, name):
 		schema_base.__init__(self, name)
 		self.max_pfield = rospy.get_param('~wander_max_pfield', 1.0)
+		self.angle_range = rospy.get_param('~wander_agnle_range', np.pi * 270 / 180)
 		rospy.Timer(rospy.Duration(0.1), self.updateCb)
 
 	def updateCb(self, event):
 		# Generate random pfield
 		mag = np.random.random_sample() * self.max_pfield
-		angle = np.random.random_sample() * np.pi - np.pi / 2
+		angle = np.random.random_sample() * self.angle_range - self.angle_range / 2
 		field = pfield()
 		field.header.stamp = rospy.get_rostime()
 		field.header.frame_id = 'base_link'
