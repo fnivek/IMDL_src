@@ -10,7 +10,7 @@ class schema(schema_base):
 		schema_base.__init__(self, name)
 		self.max_pfield = rospy.get_param('~wander_max_pfield', 1.0)
 		self.angle_range = rospy.get_param('~wander_agnle_range', np.pi * 270 / 180)
-		rospy.Timer(rospy.Duration(0.1), self.updateCb)
+		rospy.Timer(rospy.Duration(0.05), self.updateCb)
 
 	def updateCb(self, event):
 		# Generate random pfield
@@ -22,7 +22,7 @@ class schema(schema_base):
 		field.vector.x = np.cos(angle) * mag
 		field.vector.y = np.sin(angle) * mag
 		field.vector.z = 0
-		field.decay_time = 0.1
+		field.decay_time = 0.07
 		
 		self.publishPfield(field)
 

@@ -112,8 +112,8 @@ class schema(schema_base):
 		#pfield_mags = map( lambda avg: .1 * ((-1/146000) * (avg - 40000) + 10), sonar_avg)
 
 		pfield_msg = pfield()
-		pfield_msg.vector.x = pfield_mags[0] * -1 + pfield_mags[1] + pfield_mags[2] * -math.cos(math.pi/6) + pfield_mags[3] * -math.cos(-math.pi/6)
-		pfield_msg.vector.y = 										 pfield_mags[2] * -math.sin(math.pi/6) + pfield_mags[3] * -math.sin(-math.pi/6)
+		pfield_msg.vector.x = pfield_mags[0] * -1 + pfield_mags[1] + pfield_mags[2] * -math.cos(math.pi/3) + pfield_mags[3] * -math.cos(-math.pi/3)
+		pfield_msg.vector.y = 										 pfield_mags[2] * -math.sin(math.pi/3) + pfield_mags[3] * -math.sin(-math.pi/3)
 		pfield_msg.vector.z = 0
 		pfield_msg.header.stamp = rospy.Time.now()
 		pfield_msg.header.frame_id = "/base_link"
